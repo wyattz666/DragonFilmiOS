@@ -80,10 +80,10 @@ enum SourceServer: String, CaseIterable, Identifiable {
     var id: String { rawValue }
     var displayName: String {
         switch self {
-        case .kkphim: return "Server 1 · KKP"
-        case .ophim:  return "Server 2 · OP"
-        case .nguonc: return "Server 3 · NC"
-        case .vsmov:  return "Server 4 · VS"
+        case .kkphim: return "SV 1"
+        case .ophim:  return "SV 2"
+        case .nguonc: return "SV 3"
+        case .vsmov:  return "SV 4"
         }
     }
 }

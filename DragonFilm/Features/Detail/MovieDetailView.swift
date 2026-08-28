@@ -424,6 +424,9 @@ struct MovieDetailView: View {
         if lower.contains("thuyet minh") || lower.contains("thuyết minh") { return "Thuyết Minh" }
         if lower.contains("long tieng") || lower.contains("lồng tiếng") { return "Lồng Tiếng" }
         if lower.contains("vietsub") || lower.contains("sub") { return "Vietsub" }
+        if lower.contains("kkphim") || lower.contains("ophim") || lower.contains("nguonc") || lower.contains("vsmov") || lower.contains("hà nội") || lower.contains("server") {
+            return "Bản Chuẩn"
+        }
         return name
     }
 

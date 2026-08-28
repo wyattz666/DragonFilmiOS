@@ -140,7 +140,7 @@ struct ContinueWatchingCard: View {
                     Text("•")
                         .font(DFFont.small())
                         .foregroundStyle(DFColor.textMuted)
-                    Text(item.server.uppercased())
+                    Text(SourceServer(rawValue: item.server)?.displayName ?? item.server.uppercased())
                         .font(DFFont.small())
                         .foregroundStyle(DFColor.textMuted)
                 }
