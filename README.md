@@ -102,6 +102,8 @@ DragonFilm/
 ## 📄 License
 
 This project is licensed under the [MIT License](LICENSE).
+## Disclaimer
+DragonFilm is an open-source educational project. All movie information, images, and video streams are retrieved from publicly available third-party APIs. DragonFilm does not host or store any media files on its servers.
 
 ---
 
