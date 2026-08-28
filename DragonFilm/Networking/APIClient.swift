@@ -1,4 +1,5 @@
 import Foundation
+import UIKit
 
 /// Thin wrapper over URLSession. The backend uses a different envelope per
 /// endpoint (`{ok, user}`, `{ok, rows}`, and netflix-top10 has no `ok` at all),
@@ -6,6 +7,15 @@ import Foundation
 final class APIClient {
     static let shared = APIClient()
     private init() {}
+
+    static var userAgent: String {
+        let appVersion = Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "1.0.0"
+        let buildNumber = Bundle.main.infoDictionary?["CFBundleVersion"] as? String ?? "1"
+        let deviceModel = UIDevice.current.model
+        let systemVersion = UIDevice.current.systemVersion
+        let scale = UIScreen.main.scale
+        return "DragonFilm/\(appVersion) (\(deviceModel); iOS \(systemVersion); Scale/\(String(format: "%.2f", scale))) Build/\(buildNumber)"
+    }
 
     let baseURL = "https://dragonfilm.pages.dev"
 
@@ -78,6 +88,7 @@ final class APIClient {
         var req = URLRequest(url: url, timeoutInterval: 20)
         req.httpMethod = method
         req.setValue("application/json", forHTTPHeaderField: "Accept")
+        req.setValue(Self.userAgent, forHTTPHeaderField: "User-Agent")
         if let token { req.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization") }
         if let body {
             req.setValue("application/json", forHTTPHeaderField: "Content-Type")
