@@ -7,11 +7,11 @@ BUILD_DIR="./build"
 IPA_NAME="DragonFilm.ipa"
 
 if command -v xcodegen &> /dev/null; then
-    echo "⚙️  Đang đồng bộ file dự án qua XcodeGen..."
+    echo "[INFO] Đang đồng bộ file dự án qua XcodeGen..."
     xcodegen generate > /dev/null 2>&1 || true
 fi
 
-echo "🔨 Đang build dự án cho iOS Device..."
+echo "[BUILD] Đang build dự án cho iOS Device..."
 xcodebuild -project "$PROJECT_NAME" \
            -scheme "$SCHEME_NAME" \
            -sdk iphoneos \
@@ -22,11 +22,11 @@ xcodebuild -project "$PROJECT_NAME" \
            CODE_SIGN_IDENTITY="" \
            clean build
 
-echo "📦 Đang đóng gói IPA..."
+echo "[PACKAGE] Đang đóng gói IPA..."
 rm -rf ./Payload "$IPA_NAME"
 mkdir -p Payload
 cp -R "$BUILD_DIR/Build/Products/Release-iphoneos/${SCHEME_NAME}.app" Payload/
 zip -r -q "$IPA_NAME" Payload
 rm -rf Payload
 
-echo "✅ Đã tạo thành công file: $(pwd)/$IPA_NAME"
+echo "[SUCCESS] Đã tạo thành công file: $(pwd)/$IPA_NAME"

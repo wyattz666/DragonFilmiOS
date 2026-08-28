@@ -21,7 +21,7 @@ struct LibraryView: View {
                 case .liked:
                     movieGrid(state.localStore.likedMovies(),
                               emptyTitle: "Chưa có phim yêu thích",
-                              emptyMessage: "Bấm ♡ ở trang phim để thêm vào đây.")
+                              emptyMessage: "Bấm biểu tượng Yêu thích ở trang phim để thêm vào đây.")
                 case .actors:
                     actorList
                 }

@@ -1,11 +1,11 @@
-# 🎞️  DragonFilm iOS
+# DragonFilm iOS
 
 <p align="center">
   <img src="DragonFilm/Resources/Assets.xcassets/Logo.imageset/logo.png" alt="DragonFilm Logo" width="120" />
 </p>
 
 <p align="center">
-  <strong>A modern, high-performance cinema streaming application for iOS (iPhone & iPad).</strong>
+  <strong>A modern, high-performance cinema streaming application for iOS (iPhone and iPad).</strong>
 </p>
 
 <p align="center">
@@ -18,19 +18,19 @@
 
 ---
 
-## ✨ Features
+## Features
 
-- 🚀 **Seamless Video Streaming**: Custom-built video player supporting both Native HLS (`.m3u8`) streaming and Embed players with automatic episode progress tracking and instant resume playback.
-- ☁️ **Real-Time Cloud Sync**: Seamless two-way synchronization of watch history, favorite movies, and watch-later lists between the Web and iOS app.
-- 🔐 **Flexible Authentication**: Secure user authentication supporting both native DragonFilm accounts and **Sign in with Google (Google OAuth)**.
-- 🎨 **Cinema Obsidian & Gold UI**: Premium dark cinema aesthetic featuring deep OLED obsidian black backgrounds, radiant golden accents, and frosted glassmorphism overlays.
-- 📊 **Live Rankings & Trends**: Real-time trending rankings curated from Netflix VN, TMDB (Korean & Chinese TV Series), and AniList (Trending Anime).
-- 📅 **Release Schedule**: Daily interactive broadcast schedule tracking new episode releases.
-- 🔍 **Instant Search & Discovery**: Fast, debounced search across thousands of movies, series, anime, and cast members.
+- **Seamless Video Streaming**: Custom-built video player supporting both Native HLS (`.m3u8`) streaming and Embed players with automatic episode progress tracking and instant resume playback.
+- **Real-Time Cloud Sync**: Seamless two-way synchronization of watch history, favorite movies, and watch-later lists between the Web and iOS app.
+- **Flexible Authentication**: Secure user authentication supporting both native DragonFilm accounts and **Sign in with Google (Google OAuth)**.
+- **Cinema Obsidian and Gold UI**: Premium dark cinema aesthetic featuring deep OLED obsidian black backgrounds, radiant golden accents, and frosted glassmorphism overlays.
+- **Live Rankings and Trends**: Real-time trending rankings curated from Netflix VN, TMDB (Korean and Chinese TV Series), and AniList (Trending Anime).
+- **Release Schedule**: Daily interactive broadcast schedule tracking new episode releases.
+- **Instant Search and Discovery**: Fast, debounced search across thousands of movies, series, anime, and cast members.
 
 ---
 
-## 📱 Sideloading & Installation
+## Sideloading and Installation
 
 You can install DragonFilm on any iPhone or iPad running **iOS 17.0+** using the prebuilt `.ipa` binary:
 
@@ -45,7 +45,7 @@ You can install DragonFilm on any iPhone or iPad running **iOS 17.0+** using the
 
 ---
 
-## 🛠 Prerequisites & Building from Source
+## Prerequisites and Building from Source
 
 ### Requirements
 - **macOS Sonoma** or later
@@ -53,7 +53,7 @@ You can install DragonFilm on any iPhone or iPad running **iOS 17.0+** using the
 - **XcodeGen** (optional, for project file generation): `brew install xcodegen`
 - iOS 17.0+ deployment target
 
-### Build & Run
+### Build and Run
 1. Clone the repository:
    ```bash
    git clone https://github.com/wyattz666/DragonFilmiOS.git
@@ -77,7 +77,7 @@ The output file will be saved at `./DragonFilm.ipa`.
 
 ---
 
-## 🏗 Project Architecture
+## Project Architecture
 
 ```text
 DragonFilm/
@@ -99,14 +99,15 @@ DragonFilm/
 
 ---
 
-## 📄 License
+## License
 
 This project is licensed under the [MIT License](LICENSE).
+
 ## Disclaimer
 DragonFilm is an open-source educational project. All movie information, images, and video streams are retrieved from publicly available third-party APIs. DragonFilm does not host or store any media files on its servers.
 
 ---
 
 <p align="center">
-  Crafted with ❤️ for cinema lovers by the <strong>DragonFilm Team</strong>.
+  Crafted for cinema lovers by the <strong>DragonFilm Team</strong>.
 </p>
