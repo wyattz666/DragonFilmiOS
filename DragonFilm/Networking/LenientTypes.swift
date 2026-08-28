@@ -49,6 +49,24 @@ enum LenientScalar: Codable, Hashable {
         case .string(let s): try c.encode(s)
         }
     }
+
+    static func from(_ value: Any?) -> LenientScalar {
+        guard let value else { return .string("") }
+        if let i = value as? Int { return .int(i) }
+        if let d = value as? Double { return .double(d) }
+        if let n = value as? NSNumber { return .double(n.doubleValue) }
+        if let s = value as? String { return .string(s) }
+        return .string("")
+    }
+
+    static func fromOptional(_ value: Any?) -> LenientScalar? {
+        guard let value else { return nil }
+        if let i = value as? Int { return .int(i) }
+        if let d = value as? Double { return .double(d) }
+        if let n = value as? NSNumber { return .double(n.doubleValue) }
+        if let s = value as? String { return s.isEmpty ? nil : .string(s) }
+        return nil
+    }
 }
 
 /// `actor` and `director` arrays mix bare strings with

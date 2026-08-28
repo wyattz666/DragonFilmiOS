@@ -129,12 +129,12 @@ struct Genre: Codable, Identifiable, Hashable {
     var id: String { slug }
 }
 
-struct TMDBInfo: Codable {
+struct TMDBInfo: Codable, Hashable {
     let id: LenientScalar?
     let type: String?
     let season: LenientScalar?
-    let voteAverage: Double?
-    let voteCount: Int?
+    let voteAverage: LenientScalar?
+    let voteCount: LenientScalar?
     let posterURL: String?
     let backdropURL: String?
     let thumbURL: String?
@@ -146,6 +146,13 @@ struct TMDBInfo: Codable {
         case posterURL = "poster_url"
         case backdropURL = "backdrop_url"
         case thumbURL = "thumb_url"
+    }
+
+    var scoreString: String {
+        guard let voteAverage, !voteAverage.isEmpty else { return "N/A" }
+        let d = voteAverage.doubleVal
+        guard d > 0 else { return "N/A" }
+        return String(format: "%.1f", d)
     }
 }
 

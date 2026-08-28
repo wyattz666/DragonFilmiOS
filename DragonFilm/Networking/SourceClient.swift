@@ -148,6 +148,11 @@ struct SourceClient {
     static func movie(from dict: [String: Any], server: SourceServer) -> Movie? {
         guard let slug = string(dict["slug"]), !slug.isEmpty else { return nil }
         let name = string(dict["name"]) ?? slug
+        let tmdb = parseTMDB(dict["tmdb"])
+        let imdb = parseIMDB(dict["imdb"])
+        let actor = parsePersons(dict["actor"] ?? dict["actors"])
+        let director = parsePersons(dict["director"] ?? dict["directors"])
+
         return Movie(
             slug: slug,
             name: name,
@@ -161,16 +166,69 @@ struct SourceClient {
             lang: string(dict["lang"]),
             category: genres(dict["category"]),
             country: genres(dict["country"]),
-            actor: nil,
-            director: nil,
-            tmdb: nil,
-            imdb: nil,
+            actor: actor,
+            director: director,
+            tmdb: tmdb,
+            imdb: imdb,
             server: server.rawValue,
             sources: [server.rawValue],
             serverSlugs: [server.rawValue: slug],
             sourceThumbURL: nil,
             sourcePosterURL: nil
         )
+    }
+
+    private static func parseTMDB(_ value: Any?) -> TMDBInfo? {
+        guard let dict = value as? [String: Any] else { return nil }
+        return TMDBInfo(
+            id: LenientScalar.fromOptional(dict["id"]),
+            type: string(dict["type"]),
+            season: LenientScalar.fromOptional(dict["season"]),
+            voteAverage: LenientScalar.fromOptional(dict["vote_average"] ?? dict["voteAverage"]),
+            voteCount: LenientScalar.fromOptional(dict["vote_count"] ?? dict["voteCount"]),
+            posterURL: string(dict["poster_url"] ?? dict["poster_path"]),
+            backdropURL: string(dict["backdrop_url"] ?? dict["backdrop_path"]),
+            thumbURL: string(dict["thumb_url"])
+        )
+    }
+
+    private static func parseIMDB(_ value: Any?) -> TMDBInfo? {
+        guard let dict = value as? [String: Any] else { return nil }
+        return TMDBInfo(
+            id: LenientScalar.fromOptional(dict["id"]),
+            type: string(dict["type"]),
+            season: nil,
+            voteAverage: LenientScalar.fromOptional(dict["vote_average"] ?? dict["voteAverage"] ?? dict["rate"]),
+            voteCount: LenientScalar.fromOptional(dict["vote_count"] ?? dict["voteCount"] ?? dict["votes"]),
+            posterURL: nil,
+            backdropURL: nil,
+            thumbURL: nil
+        )
+    }
+
+    private static func parsePersons(_ value: Any?) -> [PersonRef]? {
+        guard let value else { return nil }
+        if let strArr = value as? [String] {
+            let filtered = strArr.map { $0.trimmingCharacters(in: .whitespacesAndNewlines) }.filter { !$0.isEmpty }
+            return filtered.isEmpty ? nil : filtered.map { .plain($0) }
+        }
+        if let dictArr = value as? [[String: Any]] {
+            let refs = dictArr.compactMap { d -> PersonRef? in
+                guard let name = string(d["name"]) else { return nil }
+                let character = string(d["character"]) ?? ""
+                let profile = string(d["profile_url"]) ?? string(d["profile_path"]) ?? ""
+                if !character.isEmpty || !profile.isEmpty {
+                    return .detailed(name: name, character: character, profileURL: profile)
+                }
+                return .plain(name)
+            }
+            return refs.isEmpty ? nil : refs
+        }
+        if let str = value as? String {
+            let items = str.components(separatedBy: ",").map { $0.trimmingCharacters(in: .whitespacesAndNewlines) }.filter { !$0.isEmpty }
+            return items.isEmpty ? nil : items.map { .plain($0) }
+        }
+        return nil
     }
 
     /// Upstreams return bare filenames for some records; prefix the per-server
@@ -217,15 +275,5 @@ struct SourceClient {
             .replacingOccurrences(of: "&amp;", with: "&")
             .replacingOccurrences(of: "&quot;", with: "\"")
             .trimmingCharacters(in: .whitespacesAndNewlines)
-    }
-}
-
-extension LenientScalar {
-    static func from(_ value: Any?) -> LenientScalar {
-        if let i = value as? Int { return .int(i) }
-        if let d = value as? Double { return .double(d) }
-        if let s = value as? String { return .string(s) }
-        if let n = value as? NSNumber { return .int(n.intValue) }
-        return .string("")
     }
 }

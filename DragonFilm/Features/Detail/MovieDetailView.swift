@@ -193,7 +193,10 @@ struct MovieDetailView: View {
 
     private func quickInfoBar(_ movie: Movie) -> some View {
         HStack(spacing: 0) {
-            infoItem(icon: "star.fill", label: "Đánh giá", value: movie.tmdb?.voteAverage.map { String(format: "%.1f", $0) } ?? "8.8", color: DFColor.gold)
+            let score = (movie.tmdb?.scoreString != "N/A" ? movie.tmdb?.scoreString : nil)
+                ?? (movie.imdb?.scoreString != "N/A" ? movie.imdb?.scoreString : nil)
+                ?? "N/A"
+            infoItem(icon: "star.fill", label: "Điểm TMDB", value: score, color: DFColor.gold)
             Divider().overlay(Color.white.opacity(0.1)).frame(height: 24)
             infoItem(icon: "calendar", label: "Năm", value: movie.yearString.isEmpty ? "2024" : movie.yearString, color: DFColor.steel)
             Divider().overlay(Color.white.opacity(0.1)).frame(height: 24)
@@ -539,6 +542,13 @@ final class MovieDetailViewModel {
                     ?? mergedMovies[SourceServer.ophim.rawValue]
                     ?? mergedMovies.first?.value
 
+        let bestTMDB = mergedMovies.values.compactMap(\.tmdb).first(where: { $0.scoreString != "N/A" })
+                    ?? mergedMovies.values.compactMap(\.tmdb).first
+        let bestIMDB = mergedMovies.values.compactMap(\.imdb).first(where: { $0.scoreString != "N/A" })
+                    ?? mergedMovies.values.compactMap(\.imdb).first
+        let bestActors = mergedMovies.values.compactMap(\.actor).first(where: { !$0.isEmpty })
+        let bestDirectors = mergedMovies.values.compactMap(\.director).first(where: { !$0.isEmpty })
+
         if let primary {
             self.movie = Movie(
                 slug: primary.slug, name: primary.name, originName: primary.originName,
@@ -547,8 +557,10 @@ final class MovieDetailViewModel {
                 episodeCurrent: primary.episodeCurrent,
                 quality: primary.quality, lang: primary.lang,
                 category: primary.category, country: primary.country,
-                actor: primary.actor, director: primary.director,
-                tmdb: primary.tmdb, imdb: primary.imdb,
+                actor: bestActors ?? primary.actor,
+                director: bestDirectors ?? primary.director,
+                tmdb: bestTMDB ?? primary.tmdb,
+                imdb: bestIMDB ?? primary.imdb,
                 server: allServers.first?.rawValue,
                 sources: allServers.map(\.rawValue),
                 serverSlugs: mergedMovies.mapValues { $0.slug }
