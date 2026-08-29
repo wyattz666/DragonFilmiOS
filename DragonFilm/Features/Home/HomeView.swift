@@ -153,16 +153,16 @@ struct HomeView: View {
         .padding(.top, 6)
         .padding(.bottom, 10)
         .background(
-            DFColor.bg.opacity(0.92)
-                .background(.ultraThinMaterial)
-                .overlay(
-                    VStack {
-                        Spacer()
-                        Divider()
-                            .overlay(Color.white.opacity(0.06))
-                    }
-                )
-                .ignoresSafeArea(edges: .top)
+            LinearGradient(
+                stops: [
+                    .init(color: DFColor.bg.opacity(0.88), location: 0.0),
+                    .init(color: DFColor.bg.opacity(0.4), location: 0.65),
+                    .init(color: .clear, location: 1.0)
+                ],
+                startPoint: .top,
+                endPoint: .bottom
+            )
+            .ignoresSafeArea(edges: .top)
         )
     }
 
@@ -412,30 +412,32 @@ struct HeroSection: View {
                     .shimmer()
             } else if !hero.isEmpty {
                 ZStack(alignment: .top) {
-                    // Ambient Blurred Backdrop Background
+                    // Immersive Ambient Blurred Backdrop Background
                     if let movie = currentMovie {
                         RemoteImage(url: movie.bestPoster, contentMode: .fill)
                             .frame(maxWidth: .infinity)
-                            .frame(height: 480)
+                            .frame(height: 560)
                             .clipped()
-                            .blur(radius: 55)
-                            .opacity(0.38)
+                            .blur(radius: 50)
+                            .opacity(0.44)
                             .overlay(
                                 LinearGradient(
                                     stops: [
-                                        .init(color: DFColor.bg.opacity(0.1), location: 0.0),
-                                        .init(color: DFColor.bg.opacity(0.65), location: 0.45),
-                                        .init(color: DFColor.bg.opacity(0.95), location: 0.85),
+                                        .init(color: DFColor.bg.opacity(0.4), location: 0.0),
+                                        .init(color: .clear, location: 0.25),
+                                        .init(color: DFColor.bg.opacity(0.7), location: 0.65),
+                                        .init(color: DFColor.bg.opacity(0.95), location: 0.9),
                                         .init(color: DFColor.bg, location: 1.0)
                                     ],
                                     startPoint: .top,
                                     endPoint: .bottom
                                 )
                             )
-                            .animation(.easeInOut(duration: 0.35), value: selectedIndex)
+                            .offset(y: -50)
+                            .animation(.easeInOut(duration: 0.4), value: selectedIndex)
                     }
 
-                    VStack(spacing: 12) {
+                    VStack(spacing: 14) {
                         // Category Navigation Filter Chips
                         categoryPills
 
@@ -556,11 +558,11 @@ struct HeroSection: View {
             // Movie Title & Original Name
             VStack(spacing: 4) {
                 Text(movie.name)
-                    .font(.system(size: 23, weight: .black, design: .rounded))
+                    .font(.system(size: 24, weight: .black, design: .rounded))
                     .foregroundStyle(.white)
                     .multilineTextAlignment(.center)
                     .lineLimit(1)
-                    .shadow(color: .black.opacity(0.7), radius: 4)
+                    .shadow(color: .black.opacity(0.8), radius: 6, y: 3)
 
                 if !movie.originName.isEmpty {
                     Text(movie.originName)
@@ -585,9 +587,9 @@ struct HeroSection: View {
                     .foregroundStyle(Color(hex: 0x07080A))
                     .frame(maxWidth: .infinity)
                     .frame(height: 44)
-                    .background(DFColor.gold)
+                    .background(DFColor.goldGradient)
                     .clipShape(RoundedRectangle(cornerRadius: 12))
-                    .shadow(color: DFColor.gold.opacity(0.35), radius: 8, y: 3)
+                    .shadow(color: DFColor.gold.opacity(0.4), radius: 8, y: 3)
                 }
                 .buttonStyle(.plain)
 
@@ -603,11 +605,11 @@ struct HeroSection: View {
                     .foregroundStyle(.white)
                     .frame(maxWidth: .infinity)
                     .frame(height: 44)
-                    .background(Color.white.opacity(0.12))
+                    .background(Color.white.opacity(0.14))
                     .clipShape(RoundedRectangle(cornerRadius: 12))
                     .overlay(
                         RoundedRectangle(cornerRadius: 12)
-                            .stroke(Color.white.opacity(0.18), lineWidth: 0.8)
+                            .stroke(Color.white.opacity(0.2), lineWidth: 0.8)
                     )
                 }
                 .buttonStyle(.plain)
@@ -671,7 +673,7 @@ struct HeroSection: View {
                 ForEach(0..<min(hero.count, 8), id: \.self) { idx in
                     if selectedIndex == idx {
                         Capsule()
-                            .fill(Color.white.opacity(0.9))
+                            .fill(DFColor.goldGradient)
                             .frame(width: 22, height: 4)
                             .animation(.spring(response: 0.35), value: selectedIndex)
                     } else {
