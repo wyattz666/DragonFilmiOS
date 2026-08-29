@@ -100,40 +100,57 @@ struct HomeView: View {
                     proxy.scrollTo("home_top_anchor", anchor: .top)
                 }
             } label: {
-                HStack(spacing: 8) {
+                HStack(spacing: 10) {
                     Image("Logo")
                         .resizable()
                         .aspectRatio(contentMode: .fit)
-                        .frame(height: 32)
+                        .frame(height: 36)
                         .shadow(color: DFColor.gold.opacity(0.35), radius: 6)
 
-                    Text("DRAGONFILM")
-                        .font(.system(size: 19, weight: .black, design: .rounded))
-                        .foregroundStyle(DFColor.goldGradient)
-                        .tracking(1.4)
-                        .shadow(color: DFColor.gold.opacity(0.3), radius: 6)
+                    VStack(alignment: .leading, spacing: 1) {
+                        Text("DragonFilm")
+                            .font(.system(size: 19, weight: .black, design: .rounded))
+                            .foregroundStyle(.white)
+                        Text("Phim Chuẩn Điện Ảnh")
+                            .font(.system(size: 11, weight: .medium))
+                            .foregroundStyle(DFColor.textMuted)
+                    }
                 }
             }
             .buttonStyle(.plain)
 
             Spacer()
 
-            NavigationLink {
-                SearchView()
-            } label: {
-                Image(systemName: "magnifyingglass")
-                    .font(.system(size: 16, weight: .bold))
-                    .foregroundStyle(DFColor.gold)
-                    .frame(width: 38, height: 38)
-                    .background(Color.white.opacity(0.1))
-                    .clipShape(Circle())
-                    .overlay(Circle().stroke(DFColor.glassBorderGradient, lineWidth: 0.8))
-                    .shadow(color: Color.black.opacity(0.4), radius: 4)
+            HStack(spacing: 10) {
+                NavigationLink {
+                    SearchView()
+                } label: {
+                    Image(systemName: "magnifyingglass")
+                        .font(.system(size: 16, weight: .semibold))
+                        .foregroundStyle(.white)
+                        .frame(width: 38, height: 38)
+                        .background(Color.white.opacity(0.12))
+                        .clipShape(Circle())
+                        .overlay(Circle().stroke(Color.white.opacity(0.15), lineWidth: 0.8))
+                }
+                .buttonStyle(.plain)
+
+                NavigationLink {
+                    CatalogView(title: "Bộ Lọc Phim", initialFilter: CatalogFilter())
+                } label: {
+                    Image(systemName: "slider.horizontal.3")
+                        .font(.system(size: 15, weight: .semibold))
+                        .foregroundStyle(.white)
+                        .frame(width: 38, height: 38)
+                        .background(Color.white.opacity(0.12))
+                        .clipShape(Circle())
+                        .overlay(Circle().stroke(Color.white.opacity(0.15), lineWidth: 0.8))
+                }
+                .buttonStyle(.plain)
             }
-            .buttonStyle(.plain)
         }
         .padding(.horizontal, DFSpacing.xxl)
-        .padding(.top, 8)
+        .padding(.top, 6)
         .padding(.bottom, 10)
         .background(
             DFColor.bg.opacity(0.92)
@@ -142,7 +159,7 @@ struct HomeView: View {
                     VStack {
                         Spacer()
                         Divider()
-                            .overlay(Color.white.opacity(0.08))
+                            .overlay(Color.white.opacity(0.06))
                     }
                 )
                 .ignoresSafeArea(edges: .top)
@@ -373,151 +390,294 @@ struct HeroSection: View {
     var isLoading: Bool = false
     @State private var selectedIndex = 0
 
+    private var currentMovie: Movie? {
+        guard !hero.isEmpty, selectedIndex < hero.count else { return hero.first }
+        return hero[selectedIndex]
+    }
+
     var body: some View {
         Group {
             if isLoading {
                 RoundedRectangle(cornerRadius: DFRadius.xl)
                     .fill(DFColor.bg3)
-                    .frame(height: 460)
+                    .frame(height: 540)
                     .padding(.horizontal, DFSpacing.xxl)
                     .shimmer()
             } else if !hero.isEmpty {
-                VStack(spacing: 12) {
-                    TabView(selection: $selectedIndex) {
-                        ForEach(Array(hero.prefix(5).enumerated()), id: \.offset) { index, movie in
-                            NavigationLink {
-                                MovieDetailView(slug: movie.slug)
-                            } label: {
-                                ZStack(alignment: .bottomLeading) {
-                                    // Hero Banner
-                                    RemoteImage(url: movie.bestBanner, contentMode: .fill)
-                                        .frame(width: UIScreen.main.bounds.width - DFSpacing.xxl * 2, height: 440)
-                                        .clipped()
-                                        .overlay(
-                                            LinearGradient(
-                                                stops: [
-                                                    .init(color: .clear, location: 0.0),
-                                                    .init(color: DFColor.bg.opacity(0.3), location: 0.35),
-                                                    .init(color: DFColor.bg.opacity(0.85), location: 0.75),
-                                                    .init(color: DFColor.bg, location: 1.0)
-                                                ],
-                                                startPoint: .top,
-                                                endPoint: .bottom
-                                            )
-                                        )
-                                        .clipShape(RoundedRectangle(cornerRadius: DFRadius.xl))
-                                        .overlay(
-                                            RoundedRectangle(cornerRadius: DFRadius.xl)
-                                                .stroke(DFColor.glassBorderGradient, lineWidth: 0.8)
-                                        )
-                                        .shadow(color: Color.black.opacity(0.7), radius: 16, y: 8)
+                ZStack(alignment: .top) {
+                    // Ambient Blurred Backdrop Background
+                    if let movie = currentMovie {
+                        RemoteImage(url: movie.bestPoster, contentMode: .fill)
+                            .frame(maxWidth: .infinity)
+                            .frame(height: 480)
+                            .clipped()
+                            .blur(radius: 55)
+                            .opacity(0.38)
+                            .overlay(
+                                LinearGradient(
+                                    stops: [
+                                        .init(color: DFColor.bg.opacity(0.1), location: 0.0),
+                                        .init(color: DFColor.bg.opacity(0.65), location: 0.45),
+                                        .init(color: DFColor.bg.opacity(0.95), location: 0.85),
+                                        .init(color: DFColor.bg, location: 1.0)
+                                    ],
+                                    startPoint: .top,
+                                    endPoint: .bottom
+                                )
+                            )
+                            .animation(.easeInOut(duration: 0.35), value: selectedIndex)
+                    }
 
-                                    // Content overlay
-                                    VStack(alignment: .leading, spacing: 10) {
-                                        // Category & Year Badges
-                                        HStack(spacing: 6) {
-                                            HStack(spacing: 3) {
-                                                Image(systemName: "flame.fill")
-                                                    .font(.system(size: 10))
-                                                Text("NỔI BẬT")
-                                                    .font(DFFont.small())
-                                            }
-                                            .foregroundStyle(DFColor.gold)
-                                            .padding(.horizontal, 8)
-                                            .padding(.vertical, 3.5)
-                                            .background(
-                                                Capsule()
-                                                    .fill(DFColor.gold.opacity(0.18))
-                                                    .overlay(Capsule().stroke(DFColor.gold.opacity(0.4), lineWidth: 0.6))
-                                            )
+                    VStack(spacing: 16) {
+                        // Category Navigation Filter Chips
+                        categoryPills
 
-                                            if !movie.yearString.isEmpty {
-                                                Text(movie.yearString)
-                                                    .font(DFFont.small())
-                                                    .foregroundStyle(.white)
-                                                    .padding(.horizontal, 7)
-                                                    .padding(.vertical, 3.5)
-                                                    .background(Color.white.opacity(0.15))
-                                                    .clipShape(Capsule())
-                                            }
+                        // 3D CoverFlow Card Carousel
+                        cardCarousel
 
-                                            if !movie.episodeCurrent.isEmpty {
-                                                Text(movie.episodeCurrent)
-                                                    .font(DFFont.small())
-                                                    .foregroundStyle(.white)
-                                                    .padding(.horizontal, 7)
-                                                    .padding(.vertical, 3.5)
-                                                    .background(DFColor.crimson.opacity(0.85))
-                                                    .clipShape(Capsule())
-                                            }
-                                        }
-
-                                        // Movie Title
-                                        Text(movie.name)
-                                            .font(DFFont.heroTitle())
-                                            .foregroundStyle(.white)
-                                            .lineLimit(2)
-                                            .shadow(color: .black.opacity(0.8), radius: 6, y: 3)
-
-                                        if !movie.originName.isEmpty {
-                                            Text(movie.originName)
-                                                .font(DFFont.callout())
-                                                .foregroundStyle(DFColor.textDim)
-                                                .lineLimit(1)
-                                        }
-
-                                        // Action Button Row
-                                        HStack(spacing: 12) {
-                                            HStack(spacing: 6) {
-                                                Image(systemName: "play.fill")
-                                                    .font(.system(size: 13, weight: .bold))
-                                                Text("Xem Ngay")
-                                                    .font(DFFont.headline())
-                                            }
-                                            .foregroundStyle(Color(hex: 0x07080A))
-                                            .padding(.horizontal, 22)
-                                            .padding(.vertical, 10)
-                                            .background(DFColor.goldGradient)
-                                            .clipShape(Capsule())
-                                            .shadow(color: DFColor.gold.opacity(0.45), radius: 10, y: 3)
-
-                                            HStack(spacing: 6) {
-                                                Image(systemName: "info.circle")
-                                                    .font(.system(size: 14))
-                                                Text("Chi Tiết")
-                                                    .font(DFFont.callout())
-                                            }
-                                            .foregroundStyle(.white)
-                                            .padding(.horizontal, 16)
-                                            .padding(.vertical, 10)
-                                            .background(Color.white.opacity(0.14))
-                                            .clipShape(Capsule())
-                                            .overlay(Capsule().stroke(Color.white.opacity(0.2), lineWidth: 0.8))
-                                        }
-                                        .padding(.top, 4)
-                                    }
-                                    .padding(DFSpacing.xl)
-                                }
-                                .padding(.horizontal, DFSpacing.xxl)
-                            }
-                            .buttonStyle(.plain)
-                            .tag(index)
+                        // Active Movie Details, Action Buttons, Badges, & Page Indicators
+                        if let movie = currentMovie {
+                            movieInfoSection(movie)
                         }
                     }
-                    .tabViewStyle(.page(indexDisplayMode: .never))
-                    .frame(height: 440)
+                    .padding(.top, 8)
+                }
+            }
+        }
+    }
 
-                    // Custom Animated Page Indicators
-                    HStack(spacing: 6) {
-                        ForEach(0..<min(hero.count, 5), id: \.self) { idx in
-                            Capsule()
-                                .fill(selectedIndex == idx ? DFColor.gold : Color.white.opacity(0.25))
-                                .frame(width: selectedIndex == idx ? 20 : 6, height: 6)
-                                .animation(.spring(response: 0.35), value: selectedIndex)
+    private var categoryPills: some View {
+        ScrollView(.horizontal, showsIndicators: false) {
+            HStack(spacing: 8) {
+                // Active "Đề xuất" pill
+                Text("Đề xuất")
+                    .font(DFFont.caption().bold())
+                    .foregroundStyle(Color(hex: 0x07080A))
+                    .padding(.horizontal, 16)
+                    .padding(.vertical, 8)
+                    .background(Color.white)
+                    .clipShape(Capsule())
+                    .shadow(color: Color.white.opacity(0.25), radius: 4)
+
+                NavigationLink {
+                    CatalogView(title: "Phim Bộ", initialFilter: CatalogFilter(kind: .type, slug: "phim-bo", label: "Phim Bộ"))
+                } label: {
+                    Text("Phim bộ")
+                        .font(DFFont.caption().bold())
+                        .foregroundStyle(.white)
+                        .padding(.horizontal, 14)
+                        .padding(.vertical, 8)
+                        .background(Color.white.opacity(0.12))
+                        .clipShape(Capsule())
+                        .overlay(Capsule().stroke(Color.white.opacity(0.18), lineWidth: 0.8))
+                }
+
+                NavigationLink {
+                    CatalogView(title: "Phim Lẻ", initialFilter: CatalogFilter(kind: .type, slug: "phim-le", label: "Phim Lẻ"))
+                } label: {
+                    Text("Phim lẻ")
+                        .font(DFFont.caption().bold())
+                        .foregroundStyle(.white)
+                        .padding(.horizontal, 14)
+                        .padding(.vertical, 8)
+                        .background(Color.white.opacity(0.12))
+                        .clipShape(Capsule())
+                        .overlay(Capsule().stroke(Color.white.opacity(0.18), lineWidth: 0.8))
+                }
+
+                NavigationLink {
+                    CatalogView(title: "Khám Phá Thể Loại", initialFilter: CatalogFilter())
+                } label: {
+                    HStack(spacing: 4) {
+                        Text("Thể loại")
+                        Image(systemName: "chevron.down")
+                            .font(.system(size: 9, weight: .bold))
+                    }
+                    .font(DFFont.caption().bold())
+                    .foregroundStyle(.white)
+                    .padding(.horizontal, 14)
+                    .padding(.vertical, 8)
+                    .background(Color.white.opacity(0.12))
+                    .clipShape(Capsule())
+                    .overlay(Capsule().stroke(Color.white.opacity(0.18), lineWidth: 0.8))
+                }
+            }
+            .padding(.horizontal, DFSpacing.xxl)
+        }
+    }
+
+    private var cardCarousel: some View {
+        TabView(selection: $selectedIndex) {
+            ForEach(Array(hero.prefix(8).enumerated()), id: \.offset) { index, movie in
+                NavigationLink {
+                    MovieDetailView(slug: movie.slug)
+                } label: {
+                    GeometryReader { _ in
+                        let cardWidth: CGFloat = 215
+                        let cardHeight: CGFloat = 320
+                        let isSelected = selectedIndex == index
+
+                        ZStack {
+                            RemoteImage(url: movie.bestPoster, contentMode: .fill)
+                                .frame(width: cardWidth, height: cardHeight)
+                                .clipped()
+                                .clipShape(RoundedRectangle(cornerRadius: 18))
+                                .overlay(
+                                    RoundedRectangle(cornerRadius: 18)
+                                        .stroke(isSelected ? Color.white.opacity(0.25) : Color.white.opacity(0.08), lineWidth: 1.0)
+                                )
+                                .shadow(color: Color.black.opacity(isSelected ? 0.85 : 0.4), radius: isSelected ? 16 : 8, y: isSelected ? 10 : 4)
                         }
+                        .frame(maxWidth: .infinity, maxHeight: .infinity)
+                        .scaleEffect(isSelected ? 1.0 : 0.86)
+                        .opacity(isSelected ? 1.0 : 0.58)
+                        .rotation3DEffect(
+                            .degrees(index < selectedIndex ? 12 : (index > selectedIndex ? -12 : 0)),
+                            axis: (x: 0, y: 1, z: 0)
+                        )
+                        .animation(.spring(response: 0.38, dampingFraction: 0.8), value: selectedIndex)
+                    }
+                }
+                .buttonStyle(.plain)
+                .tag(index)
+            }
+        }
+        .tabViewStyle(.page(indexDisplayMode: .never))
+        .frame(height: 330)
+    }
+
+    private func movieInfoSection(_ movie: Movie) -> some View {
+        VStack(spacing: 12) {
+            // Movie Title & Original Name
+            VStack(spacing: 4) {
+                Text(movie.name)
+                    .font(.system(size: 23, weight: .black, design: .rounded))
+                    .foregroundStyle(.white)
+                    .multilineTextAlignment(.center)
+                    .lineLimit(1)
+                    .shadow(color: .black.opacity(0.7), radius: 4)
+
+                if !movie.originName.isEmpty {
+                    Text(movie.originName)
+                        .font(DFFont.caption())
+                        .foregroundStyle(DFColor.textMuted)
+                        .lineLimit(1)
+                }
+            }
+            .padding(.horizontal, DFSpacing.xl)
+
+            // Primary Action Buttons Row
+            HStack(spacing: 12) {
+                NavigationLink {
+                    MovieDetailView(slug: movie.slug)
+                } label: {
+                    HStack(spacing: 8) {
+                        Image(systemName: "play.fill")
+                            .font(.system(size: 14, weight: .bold))
+                        Text("Xem Phim")
+                            .font(DFFont.headline())
+                    }
+                    .foregroundStyle(Color(hex: 0x07080A))
+                    .frame(maxWidth: .infinity)
+                    .frame(height: 44)
+                    .background(DFColor.gold)
+                    .clipShape(RoundedRectangle(cornerRadius: 12))
+                    .shadow(color: DFColor.gold.opacity(0.35), radius: 8, y: 3)
+                }
+                .buttonStyle(.plain)
+
+                NavigationLink {
+                    MovieDetailView(slug: movie.slug)
+                } label: {
+                    HStack(spacing: 8) {
+                        Image(systemName: "info.circle.fill")
+                            .font(.system(size: 15))
+                        Text("Thông tin")
+                            .font(DFFont.headline())
+                    }
+                    .foregroundStyle(.white)
+                    .frame(maxWidth: .infinity)
+                    .frame(height: 44)
+                    .background(Color.white.opacity(0.12))
+                    .clipShape(RoundedRectangle(cornerRadius: 12))
+                    .overlay(
+                        RoundedRectangle(cornerRadius: 12)
+                            .stroke(Color.white.opacity(0.18), lineWidth: 0.8)
+                    )
+                }
+                .buttonStyle(.plain)
+            }
+            .padding(.horizontal, DFSpacing.xxl)
+            .padding(.top, 2)
+
+            // Badges Row
+            HStack(spacing: 6) {
+                // Rating Pill (IMDb 9.6 / TMDB 8.8)
+                let score = movie.formattedScore
+                Text("\(score.label) \(score.score)")
+                    .font(DFFont.caption().bold())
+                    .foregroundStyle(DFColor.gold)
+                    .padding(.horizontal, 8)
+                    .padding(.vertical, 3.5)
+                    .background(
+                        Capsule()
+                            .fill(DFColor.gold.opacity(0.15))
+                            .overlay(Capsule().stroke(DFColor.gold.opacity(0.5), lineWidth: 0.8))
+                    )
+
+                // Quality Pill (HD)
+                Text(movie.cleanQuality)
+                    .font(DFFont.small().bold())
+                    .foregroundStyle(Color(hex: 0x07080A))
+                    .padding(.horizontal, 6)
+                    .padding(.vertical, 3)
+                    .background(DFColor.gold)
+                    .clipShape(RoundedRectangle(cornerRadius: 4))
+
+                // Year Pill (2026)
+                if !movie.yearString.isEmpty {
+                    Text(movie.yearString)
+                        .font(DFFont.caption().bold())
+                        .foregroundStyle(.white)
+                        .padding(.horizontal, 8)
+                        .padding(.vertical, 3.5)
+                        .background(Color.white.opacity(0.12))
+                        .clipShape(RoundedRectangle(cornerRadius: 4))
+                }
+
+                // Episode Pill
+                Text(movie.episodeBadge)
+                    .font(DFFont.caption().bold())
+                    .foregroundStyle(.white)
+                    .padding(.horizontal, 8)
+                    .padding(.vertical, 3.5)
+                    .background(Color.white.opacity(0.12))
+                    .clipShape(RoundedRectangle(cornerRadius: 4))
+            }
+
+            // Genre Line
+            Text(movie.categoryString)
+                .font(DFFont.caption().bold())
+                .foregroundStyle(DFColor.goldDim)
+                .lineLimit(1)
+
+            // Pagination Dots
+            HStack(spacing: 5) {
+                ForEach(0..<min(hero.count, 8), id: \.self) { idx in
+                    if selectedIndex == idx {
+                        Capsule()
+                            .fill(Color.white.opacity(0.9))
+                            .frame(width: 22, height: 4)
+                            .animation(.spring(response: 0.35), value: selectedIndex)
+                    } else {
+                        Circle()
+                            .fill(Color.white.opacity(0.28))
+                            .frame(width: 4.5, height: 4.5)
+                            .animation(.spring(response: 0.35), value: selectedIndex)
                     }
                 }
             }
+            .padding(.top, 4)
         }
     }
 }

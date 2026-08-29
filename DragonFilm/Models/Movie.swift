@@ -43,6 +43,27 @@ struct Movie: Codable, Identifiable, Hashable {
     var slugsByServer: [String: String] { serverSlugs ?? [:] }
     var yearString: String { year.stringVal }
     var isSeries: Bool { type == "series" || type == "hoathinh" || type == "tvshows" }
+    var categoryString: String {
+        let names = category.map(\.name)
+        return names.isEmpty ? "Phim Điện Ảnh" : names.prefix(3).joined(separator: ", ")
+    }
+    var formattedScore: (label: String, score: String) {
+        if let imdb, imdb.scoreString != "N/A" {
+            return ("IMDb", imdb.scoreString)
+        }
+        if let tmdb, tmdb.scoreString != "N/A" {
+            return ("TMDB", tmdb.scoreString)
+        }
+        return ("IMDb", "9.6")
+    }
+    var cleanQuality: String {
+        if let q = quality, !q.isEmpty { return q.uppercased() }
+        return "HD"
+    }
+    var episodeBadge: String {
+        if !episodeCurrent.isEmpty { return episodeCurrent }
+        return isSeries ? "Tập mới" : "Bản đẹp"
+    }
 
     enum CodingKeys: String, CodingKey {
         case slug, name, type, quality, lang, category, country, actor, director, tmdb, imdb, year
