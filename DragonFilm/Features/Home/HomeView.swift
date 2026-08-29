@@ -388,19 +388,26 @@ struct RankColumn: Identifiable {
 struct HeroSection: View {
     let hero: [Movie]
     var isLoading: Bool = false
-    @State private var selectedIndex = 0
+    @State private var activeHeroId: Int? = 0
+
+    private var selectedIndex: Int {
+        activeHeroId ?? 0
+    }
 
     private var currentMovie: Movie? {
-        guard !hero.isEmpty, selectedIndex < hero.count else { return hero.first }
+        guard !hero.isEmpty, selectedIndex >= 0, selectedIndex < hero.count else { return hero.first }
         return hero[selectedIndex]
     }
+
+    private let cardWidth: CGFloat = 220
+    private let cardHeight: CGFloat = 320
 
     var body: some View {
         Group {
             if isLoading {
                 RoundedRectangle(cornerRadius: DFRadius.xl)
                     .fill(DFColor.bg3)
-                    .frame(height: 540)
+                    .frame(height: 520)
                     .padding(.horizontal, DFSpacing.xxl)
                     .shimmer()
             } else if !hero.isEmpty {
@@ -428,7 +435,7 @@ struct HeroSection: View {
                             .animation(.easeInOut(duration: 0.35), value: selectedIndex)
                     }
 
-                    VStack(spacing: 16) {
+                    VStack(spacing: 12) {
                         // Category Navigation Filter Chips
                         categoryPills
 
@@ -440,7 +447,7 @@ struct HeroSection: View {
                             movieInfoSection(movie)
                         }
                     }
-                    .padding(.top, 8)
+                    .padding(.top, 4)
                 }
             }
         }
@@ -454,7 +461,7 @@ struct HeroSection: View {
                     .font(DFFont.caption().bold())
                     .foregroundStyle(Color(hex: 0x07080A))
                     .padding(.horizontal, 16)
-                    .padding(.vertical, 8)
+                    .padding(.vertical, 7)
                     .background(Color.white)
                     .clipShape(Capsule())
                     .shadow(color: Color.white.opacity(0.25), radius: 4)
@@ -466,7 +473,7 @@ struct HeroSection: View {
                         .font(DFFont.caption().bold())
                         .foregroundStyle(.white)
                         .padding(.horizontal, 14)
-                        .padding(.vertical, 8)
+                        .padding(.vertical, 7)
                         .background(Color.white.opacity(0.12))
                         .clipShape(Capsule())
                         .overlay(Capsule().stroke(Color.white.opacity(0.18), lineWidth: 0.8))
@@ -479,7 +486,7 @@ struct HeroSection: View {
                         .font(DFFont.caption().bold())
                         .foregroundStyle(.white)
                         .padding(.horizontal, 14)
-                        .padding(.vertical, 8)
+                        .padding(.vertical, 7)
                         .background(Color.white.opacity(0.12))
                         .clipShape(Capsule())
                         .overlay(Capsule().stroke(Color.white.opacity(0.18), lineWidth: 0.8))
@@ -496,7 +503,7 @@ struct HeroSection: View {
                     .font(DFFont.caption().bold())
                     .foregroundStyle(.white)
                     .padding(.horizontal, 14)
-                    .padding(.vertical, 8)
+                    .padding(.vertical, 7)
                     .background(Color.white.opacity(0.12))
                     .clipShape(Capsule())
                     .overlay(Capsule().stroke(Color.white.opacity(0.18), lineWidth: 0.8))
@@ -507,43 +514,41 @@ struct HeroSection: View {
     }
 
     private var cardCarousel: some View {
-        TabView(selection: $selectedIndex) {
-            ForEach(Array(hero.prefix(8).enumerated()), id: \.offset) { index, movie in
-                NavigationLink {
-                    MovieDetailView(slug: movie.slug)
-                } label: {
-                    GeometryReader { _ in
-                        let cardWidth: CGFloat = 215
-                        let cardHeight: CGFloat = 320
-                        let isSelected = selectedIndex == index
-
-                        ZStack {
-                            RemoteImage(url: movie.bestPoster, contentMode: .fill)
-                                .frame(width: cardWidth, height: cardHeight)
-                                .clipped()
-                                .clipShape(RoundedRectangle(cornerRadius: 18))
-                                .overlay(
-                                    RoundedRectangle(cornerRadius: 18)
-                                        .stroke(isSelected ? Color.white.opacity(0.25) : Color.white.opacity(0.08), lineWidth: 1.0)
-                                )
-                                .shadow(color: Color.black.opacity(isSelected ? 0.85 : 0.4), radius: isSelected ? 16 : 8, y: isSelected ? 10 : 4)
-                        }
-                        .frame(maxWidth: .infinity, maxHeight: .infinity)
-                        .scaleEffect(isSelected ? 1.0 : 0.86)
-                        .opacity(isSelected ? 1.0 : 0.58)
-                        .rotation3DEffect(
-                            .degrees(index < selectedIndex ? 12 : (index > selectedIndex ? -12 : 0)),
-                            axis: (x: 0, y: 1, z: 0)
-                        )
-                        .animation(.spring(response: 0.38, dampingFraction: 0.8), value: selectedIndex)
+        ScrollView(.horizontal, showsIndicators: false) {
+            LazyHStack(spacing: 16) {
+                ForEach(Array(hero.prefix(8).enumerated()), id: \.offset) { index, movie in
+                    NavigationLink {
+                        MovieDetailView(slug: movie.slug)
+                    } label: {
+                        RemoteImage(url: movie.bestPoster, contentMode: .fill)
+                            .frame(width: cardWidth, height: cardHeight)
+                            .clipped()
+                            .clipShape(RoundedRectangle(cornerRadius: 18))
+                            .overlay(
+                                RoundedRectangle(cornerRadius: 18)
+                                    .stroke(Color.white.opacity(selectedIndex == index ? 0.25 : 0.08), lineWidth: 1.0)
+                            )
+                            .shadow(color: Color.black.opacity(selectedIndex == index ? 0.85 : 0.4), radius: selectedIndex == index ? 16 : 8, y: selectedIndex == index ? 10 : 4)
                     }
+                    .buttonStyle(.plain)
+                    .scrollTransition(.interactive, axis: .horizontal) { content, phase in
+                        content
+                            .scaleEffect(phase.isIdentity ? 1.0 : 0.86)
+                            .opacity(phase.isIdentity ? 1.0 : 0.58)
+                            .rotation3DEffect(
+                                .degrees(phase.value * -14),
+                                axis: (x: 0, y: 1, z: 0)
+                            )
+                    }
+                    .id(index)
                 }
-                .buttonStyle(.plain)
-                .tag(index)
             }
+            .scrollTargetLayout()
         }
-        .tabViewStyle(.page(indexDisplayMode: .never))
-        .frame(height: 330)
+        .scrollTargetBehavior(.viewAligned)
+        .scrollPosition(id: $activeHeroId)
+        .safeAreaPadding(.horizontal, max(0, (UIScreen.main.bounds.width - cardWidth) / 2))
+        .frame(height: cardHeight + 10)
     }
 
     private func movieInfoSection(_ movie: Movie) -> some View {

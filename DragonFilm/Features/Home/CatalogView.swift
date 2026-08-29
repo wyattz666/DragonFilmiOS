@@ -10,9 +10,6 @@ struct CatalogView: View {
     var body: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: DFSpacing.xl) {
-                // Server selector pills
-                serverPicker
-
                 if viewModel.isLoading && viewModel.movies.isEmpty {
                     VStack(spacing: DFSpacing.md) {
                         ProgressView().tint(DFColor.gold)
@@ -25,7 +22,7 @@ struct CatalogView: View {
                     EmptyStateView(
                         icon: "film.stack",
                         title: "Không có phim nào",
-                        message: "Thử chọn nguồn phát (Server) khác ở trên."
+                        message: "Không tìm thấy phim phù hợp trong danh mục này."
                     )
                     .frame(minHeight: 300)
                 } else {
@@ -63,7 +60,7 @@ struct CatalogView: View {
                     }
                 }
             }
-            .padding(.top, DFSpacing.lg)
+            .padding(.top, DFSpacing.md)
             .padding(.bottom, DFSpacing.xxxl)
         }
         .background(DFColor.bg)
@@ -71,35 +68,6 @@ struct CatalogView: View {
         .navigationBarTitleDisplayMode(.inline)
         .task {
             await viewModel.load(filter: initialFilter)
-        }
-    }
-
-    private var serverPicker: some View {
-        ScrollView(.horizontal, showsIndicators: false) {
-            HStack(spacing: DFSpacing.sm) {
-                ForEach(SourceServer.allCases) { s in
-                    Button {
-                        viewModel.switchServer(s)
-                    } label: {
-                        Text(s.displayName)
-                            .font(DFFont.caption().bold())
-                            .foregroundStyle(viewModel.selectedServer == s ? Color(hex: 0x07080A) : .white)
-                            .padding(.horizontal, 14)
-                            .padding(.vertical, 7)
-                            .background(
-                                Capsule()
-                                    .fill(viewModel.selectedServer == s ? DFColor.gold : Color.white.opacity(0.08))
-                                    .overlay(
-                                        Capsule()
-                                            .stroke(viewModel.selectedServer == s ? DFColor.gold : Color.white.opacity(0.12), lineWidth: 0.6)
-                                    )
-                            )
-                            .shadow(color: viewModel.selectedServer == s ? DFColor.gold.opacity(0.3) : .clear, radius: 4)
-                    }
-                    .buttonStyle(.plain)
-                }
-            }
-            .padding(.horizontal, DFSpacing.xxl)
         }
     }
 }
@@ -111,7 +79,6 @@ final class CatalogViewModel {
     var totalPages = 1
     var isLoading = false
     var isLoadingMore = false
-    var selectedServer: SourceServer = .kkphim
     private var currentFilter: CatalogFilter = CatalogFilter()
 
     func load(filter: CatalogFilter) async {
@@ -119,14 +86,6 @@ final class CatalogViewModel {
         self.page = 1
         self.movies = []
         await fetch(page: 1, replacing: true)
-    }
-
-    func switchServer(_ server: SourceServer) {
-        guard selectedServer != server else { return }
-        selectedServer = server
-        self.page = 1
-        self.movies = []
-        Task { await fetch(page: 1, replacing: true) }
     }
 
     func loadMore() async {
@@ -140,23 +99,58 @@ final class CatalogViewModel {
         if replacing { isLoading = true }
         defer { if replacing { isLoading = false } }
 
-        do {
-            let (fetched, total) = try await SourceClient.list(
-                server: selectedServer,
-                operation: currentFilter.operation,
-                slug: currentFilter.slug.isEmpty ? nil : currentFilter.slug,
-                keyword: nil,
-                page: page
-            )
-            self.page = page
-            self.totalPages = max(total, page)
-            if replacing {
-                self.movies = fetched
-            } else {
-                self.movies.append(contentsOf: fetched)
+        var collected: [Movie] = []
+        var maxTotal = 1
+
+        await withTaskGroup(of: ([Movie], Int).self) { group in
+            for server in SourceServer.allCases {
+                group.addTask { [server, currentFilter = self.currentFilter] in
+                    do {
+                        let (movies, total) = try await SourceClient.list(
+                            server: server,
+                            operation: currentFilter.operation,
+                            slug: currentFilter.slug.isEmpty ? nil : currentFilter.slug,
+                            keyword: nil,
+                            page: page
+                        )
+                        return (movies, total)
+                    } catch {
+                        return ([], 1)
+                    }
+                }
             }
-        } catch {
-            if replacing { self.movies = [] }
+
+            for await (movies, total) in group {
+                collected.append(contentsOf: movies)
+                if total > maxTotal { maxTotal = total }
+            }
+        }
+
+        // Deduplicate movies by commentKey / normalized name
+        var seen = Set<String>()
+        var deduplicated: [Movie] = []
+        for movie in collected {
+            let key = movie.commentKey.isEmpty ? movie.slug : movie.commentKey
+            if !seen.contains(key) {
+                seen.insert(key)
+                deduplicated.append(movie)
+            }
+        }
+
+        self.page = page
+        self.totalPages = maxTotal
+        if replacing {
+            self.movies = deduplicated
+        } else {
+            for existing in self.movies {
+                let key = existing.commentKey.isEmpty ? existing.slug : existing.commentKey
+                seen.insert(key)
+            }
+            let fresh = deduplicated.filter { movie in
+                let key = movie.commentKey.isEmpty ? movie.slug : movie.commentKey
+                return !seen.contains(key)
+            }
+            self.movies.append(contentsOf: fresh)
         }
     }
 }
