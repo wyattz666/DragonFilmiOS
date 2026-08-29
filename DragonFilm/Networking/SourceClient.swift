@@ -234,16 +234,24 @@ struct SourceClient {
     /// Upstreams return bare filenames for some records; prefix the per-server
     /// image host so the proxy receives an absolute allowlisted URL.
     private static func absoluteImage(_ value: String?, server: SourceServer) -> String {
-        guard let value, !value.isEmpty else { return "" }
-        if value.hasPrefix("http") { return value }
-        let base: String
+        guard let value = value?.trimmingCharacters(in: .whitespacesAndNewlines), !value.isEmpty else { return "" }
+        if value.hasPrefix("http://") || value.hasPrefix("https://") { return value }
+        if value.hasPrefix("//") { return "https:" + value }
+
+        let cleaned = value.hasPrefix("/") ? String(value.dropFirst()) : value
         switch server {
-        case .kkphim: base = "https://phimimg.com"
-        case .ophim:  base = "https://img.ophim.live/uploads/movies"
-        case .nguonc: base = "https://phim.nguonc.com"
-        case .vsmov:  base = "https://vsmov.com"
+        case .kkphim:
+            return "https://phimimg.com/\(cleaned)"
+        case .ophim:
+            if cleaned.hasPrefix("uploads/movies/") {
+                return "https://img.ophim.live/\(cleaned)"
+            }
+            return "https://img.ophim.live/uploads/movies/\(cleaned)"
+        case .nguonc:
+            return "https://phim.nguonc.com/\(cleaned)"
+        case .vsmov:
+            return "https://vsmov.com/\(cleaned)"
         }
-        return value.hasPrefix("/") ? base + value : base + "/" + value
     }
 
     private static func genres(_ value: Any?) -> [Genre] {

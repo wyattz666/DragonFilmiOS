@@ -27,15 +27,32 @@ struct Movie: Codable, Identifiable, Hashable {
     var id: String { slug }
     var bestBanner: String {
         if let source = sourceThumbURL, !source.isEmpty { return source }
-        if !thumbURL.isEmpty { return thumbURL }
-        if let backdrop = tmdb?.backdropURL, !backdrop.isEmpty { return backdrop }
-        return bestPoster
+        if activeServer == .ophim || activeServer == .nguonc {
+            if !posterURL.isEmpty { return posterURL }
+            if let backdrop = tmdb?.backdropURL, !backdrop.isEmpty { return backdrop }
+            if let thumb = tmdb?.thumbURL, !thumb.isEmpty { return thumb }
+            return bestPoster
+        } else {
+            if let backdrop = tmdb?.backdropURL, !backdrop.isEmpty { return backdrop }
+            if let thumb = tmdb?.thumbURL, !thumb.isEmpty { return thumb }
+            if !thumbURL.isEmpty { return thumbURL }
+            return bestPoster
+        }
     }
     var bestPoster: String {
         if let source = sourcePosterURL, !source.isEmpty { return source }
-        if !posterURL.isEmpty { return posterURL }
-        if let poster = tmdb?.posterURL, !poster.isEmpty { return poster }
-        return thumbURL
+        if activeServer == .kkphim {
+            if !posterURL.isEmpty { return posterURL }
+            if let poster = tmdb?.posterURL, !poster.isEmpty { return poster }
+            if !thumbURL.isEmpty { return thumbURL }
+            return ""
+        } else {
+            // For OPhim, NguonC, VSMov: thumbURL is the portrait poster!
+            if !thumbURL.isEmpty { return thumbURL }
+            if let poster = tmdb?.posterURL, !poster.isEmpty { return poster }
+            if !posterURL.isEmpty { return posterURL }
+            return ""
+        }
     }
     var bestThumb: String { bestBanner }
     var activeServer: SourceServer { SourceServer(rawValue: server ?? "") ?? .kkphim }
