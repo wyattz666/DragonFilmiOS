@@ -542,7 +542,7 @@ final class MovieDetailViewModel {
 
         let allServers = mergedMovies.keys.compactMap { SourceServer(rawValue: $0) }
         let primary = mergedMovies[SourceServer.kkphim.rawValue]
-                    ?? mergedMovies[SourceServer.ophim.rawValue]
+                    ?? mergedMovies[SourceServer.nguonc.rawValue]
                     ?? mergedMovies.first?.value
 
         let bestTMDB = mergedMovies.values.compactMap(\.tmdb).first(where: { $0.scoreString != "N/A" })

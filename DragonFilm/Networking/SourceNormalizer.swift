@@ -76,14 +76,13 @@ struct AnyCodable: Codable {
 }
 
 enum SourceServer: String, CaseIterable, Identifiable {
-    case kkphim, ophim, nguonc, vsmov
+    case kkphim, nguonc, vsmov
     var id: String { rawValue }
     var displayName: String {
         switch self {
         case .kkphim: return "SV 1"
-        case .ophim:  return "SV 2"
-        case .nguonc: return "SV 3"
-        case .vsmov:  return "SV 4"
+        case .nguonc: return "SV 2"
+        case .vsmov:  return "SV 3"
         }
     }
 }
@@ -118,7 +117,7 @@ struct SourceNormalizer {
     static func upstreamPath(for server: SourceServer, operation: String, slug: String? = nil, keyword: String? = nil, page: Int = 1) -> String {
         let kw = (keyword ?? "").addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) ?? keyword ?? ""
         switch server {
-        case .kkphim, .ophim:
+        case .kkphim:
             switch operation {
             case "latest": return "/danh-sach/phim-moi-cap-nhat?page=\(page)"
             case "search": return "/v1/api/tim-kiem?keyword=\(kw)&page=\(page)"

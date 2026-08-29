@@ -242,11 +242,6 @@ struct SourceClient {
         switch server {
         case .kkphim:
             return "https://phimimg.com/\(cleaned)"
-        case .ophim:
-            if cleaned.hasPrefix("uploads/movies/") {
-                return "https://img.ophim.live/\(cleaned)"
-            }
-            return "https://img.ophim.live/uploads/movies/\(cleaned)"
         case .nguonc:
             return "https://phim.nguonc.com/\(cleaned)"
         case .vsmov:

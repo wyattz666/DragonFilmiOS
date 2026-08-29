@@ -27,7 +27,7 @@ struct Movie: Codable, Identifiable, Hashable {
     var id: String { slug }
     var bestBanner: String {
         if let source = sourceThumbURL, !source.isEmpty { return source }
-        if activeServer == .ophim || activeServer == .nguonc {
+        if activeServer == .nguonc {
             if !posterURL.isEmpty { return posterURL }
             if let backdrop = tmdb?.backdropURL, !backdrop.isEmpty { return backdrop }
             if let thumb = tmdb?.thumbURL, !thumb.isEmpty { return thumb }
@@ -47,7 +47,7 @@ struct Movie: Codable, Identifiable, Hashable {
             if !thumbURL.isEmpty { return thumbURL }
             return ""
         } else {
-            // For OPhim, NguonC, VSMov: thumbURL is the portrait poster!
+            // For NguonC, VSMov: thumbURL is the portrait poster!
             if !thumbURL.isEmpty { return thumbURL }
             if let poster = tmdb?.posterURL, !poster.isEmpty { return poster }
             if !posterURL.isEmpty { return posterURL }
