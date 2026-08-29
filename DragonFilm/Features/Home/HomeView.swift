@@ -10,79 +10,84 @@ struct HomeView: View {
                 DFColor.bg.ignoresSafeArea()
 
                 ScrollView {
-                    VStack(spacing: DFSpacing.sectionH) {
+                    VStack(spacing: 0) {
                         Color.clear
                             .frame(height: 0)
                             .id("home_top_anchor")
 
-                        // Spacing for sticky top header
-                        Color.clear
-                            .frame(height: 52)
-
-                        HeroSection(hero: viewModel.hero, isLoading: viewModel.isLoading && viewModel.hero.isEmpty)
-
-                        ContinueWatchingSection(items: state.localStore.history().prefix(6).map { $0 })
-
-                        ForEach(viewModel.homeRows) { row in
-                            MovieRowSection(title: row.title, movies: row.items, filter: row.catalogFilter)
-                        }
-
-                        rankingSections
-
-                        if !viewModel.isLoading && !viewModel.homeRows.isEmpty {
-                            latestSection
-                        }
-
-                        CommentSection(movieKey: "dragonfilm_homepage",
-                                       movieName: "DragonFilm", title: "Bình luận chung")
-
-                        if viewModel.isLoading && viewModel.homeRows.isEmpty {
-                            HStack(spacing: DFSpacing.md) {
-                                ProgressView()
-                                    .tint(DFColor.gold)
-                                Text("Đang tải dữ liệu...")
-                                    .font(DFFont.caption())
-                                    .foregroundStyle(DFColor.textMuted)
-                            }
-                            .padding(.vertical, DFSpacing.xxxl)
-                        }
-
-                        if let loadError = viewModel.loadError, viewModel.homeRows.isEmpty {
-                            VStack(spacing: DFSpacing.lg) {
-                                Image(systemName: "wifi.exclamationmark")
-                                    .font(.system(size: 44))
-                                    .foregroundStyle(DFColor.goldDim)
-                                Text(loadError)
-                                    .font(DFFont.body())
-                                    .foregroundStyle(DFColor.textDim)
-                                    .multilineTextAlignment(.center)
-                                Button("Thử lại") {
-                                    Task {
-                                        await viewModel.loadHome(force: true)
-                                        await viewModel.loadRankings(force: true)
-                                    }
+                        HeroSection(
+                            hero: viewModel.hero,
+                            isLoading: viewModel.isLoading && viewModel.hero.isEmpty,
+                            onScrollToTop: {
+                                withAnimation(.spring(response: 0.45, dampingFraction: 0.8)) {
+                                    proxy.scrollTo("home_top_anchor", anchor: .top)
                                 }
-                                .font(DFFont.headline())
-                                .foregroundStyle(DFColor.bg)
-                                .padding(.horizontal, DFSpacing.xxl)
-                                .padding(.vertical, DFSpacing.md)
-                                .background(DFColor.gold)
-                                .clipShape(RoundedRectangle(cornerRadius: DFRadius.md))
                             }
-                            .padding(.horizontal, DFSpacing.xxl)
-                            .padding(.top, DFSpacing.xxxl)
+                        )
+
+                        VStack(spacing: DFSpacing.sectionH) {
+                            ContinueWatchingSection(items: state.localStore.history().prefix(6).map { $0 })
+
+                            ForEach(viewModel.homeRows) { row in
+                                MovieRowSection(title: row.title, movies: row.items, filter: row.catalogFilter)
+                            }
+
+                            rankingSections
+
+                            if !viewModel.isLoading && !viewModel.homeRows.isEmpty {
+                                latestSection
+                            }
+
+                            CommentSection(movieKey: "dragonfilm_homepage",
+                                           movieName: "DragonFilm", title: "Bình luận chung")
+
+                            if viewModel.isLoading && viewModel.homeRows.isEmpty {
+                                HStack(spacing: DFSpacing.md) {
+                                    ProgressView()
+                                        .tint(DFColor.gold)
+                                    Text("Đang tải dữ liệu...")
+                                        .font(DFFont.caption())
+                                        .foregroundStyle(DFColor.textMuted)
+                                }
+                                .padding(.vertical, DFSpacing.xxxl)
+                            }
+
+                            if let loadError = viewModel.loadError, viewModel.homeRows.isEmpty {
+                                VStack(spacing: DFSpacing.lg) {
+                                    Image(systemName: "wifi.exclamationmark")
+                                        .font(.system(size: 44))
+                                        .foregroundStyle(DFColor.goldDim)
+                                    Text(loadError)
+                                        .font(DFFont.body())
+                                        .foregroundStyle(DFColor.textDim)
+                                        .multilineTextAlignment(.center)
+                                    Button("Thử lại") {
+                                        Task {
+                                            await viewModel.loadHome(force: true)
+                                            await viewModel.loadRankings(force: true)
+                                        }
+                                    }
+                                    .font(DFFont.headline())
+                                    .foregroundStyle(DFColor.bg)
+                                    .padding(.horizontal, DFSpacing.xxl)
+                                    .padding(.vertical, DFSpacing.md)
+                                    .background(DFColor.gold)
+                                    .clipShape(RoundedRectangle(cornerRadius: DFRadius.md))
+                                }
+                                .padding(.horizontal, DFSpacing.xxl)
+                                .padding(.top, DFSpacing.xxxl)
+                            }
                         }
+                        .padding(.top, DFSpacing.xl)
+                        .padding(.bottom, DFSpacing.xxxl)
                     }
-                    .padding(.bottom, DFSpacing.xxxl)
                 }
+                .ignoresSafeArea(edges: .top)
                 .refreshable {
                     await viewModel.loadHome(force: true)
                     await viewModel.loadRankings(force: true)
                     await state.cloudSync.sync()
                 }
-
-                // Sticky Top Header
-                topHeader(proxy: proxy)
             }
             .navigationBarHidden(true)
             .task {
@@ -91,79 +96,6 @@ struct HomeView: View {
                 await state.cloudSync.sync()
             }
         }
-    }
-
-    private func topHeader(proxy: ScrollViewProxy) -> some View {
-        HStack(alignment: .center) {
-            Button {
-                withAnimation(.spring(response: 0.45, dampingFraction: 0.8)) {
-                    proxy.scrollTo("home_top_anchor", anchor: .top)
-                }
-            } label: {
-                HStack(spacing: 10) {
-                    Image("Logo")
-                        .resizable()
-                        .aspectRatio(contentMode: .fit)
-                        .frame(height: 36)
-                        .shadow(color: DFColor.gold.opacity(0.35), radius: 6)
-
-                    VStack(alignment: .leading, spacing: 1) {
-                        Text("DragonFilm")
-                            .font(.system(size: 19, weight: .black, design: .rounded))
-                            .foregroundStyle(.white)
-                        Text("Phim Chuẩn Điện Ảnh")
-                            .font(.system(size: 11, weight: .medium))
-                            .foregroundStyle(DFColor.textMuted)
-                    }
-                }
-            }
-            .buttonStyle(.plain)
-
-            Spacer()
-
-            HStack(spacing: 10) {
-                NavigationLink {
-                    SearchView()
-                } label: {
-                    Image(systemName: "magnifyingglass")
-                        .font(.system(size: 16, weight: .semibold))
-                        .foregroundStyle(.white)
-                        .frame(width: 38, height: 38)
-                        .background(Color.white.opacity(0.12))
-                        .clipShape(Circle())
-                        .overlay(Circle().stroke(Color.white.opacity(0.15), lineWidth: 0.8))
-                }
-                .buttonStyle(.plain)
-
-                NavigationLink {
-                    CatalogView(title: "Bộ Lọc Phim", initialFilter: CatalogFilter())
-                } label: {
-                    Image(systemName: "slider.horizontal.3")
-                        .font(.system(size: 15, weight: .semibold))
-                        .foregroundStyle(.white)
-                        .frame(width: 38, height: 38)
-                        .background(Color.white.opacity(0.12))
-                        .clipShape(Circle())
-                        .overlay(Circle().stroke(Color.white.opacity(0.15), lineWidth: 0.8))
-                }
-                .buttonStyle(.plain)
-            }
-        }
-        .padding(.horizontal, DFSpacing.xxl)
-        .padding(.top, 6)
-        .padding(.bottom, 10)
-        .background(
-            LinearGradient(
-                stops: [
-                    .init(color: DFColor.bg.opacity(0.88), location: 0.0),
-                    .init(color: DFColor.bg.opacity(0.4), location: 0.65),
-                    .init(color: .clear, location: 1.0)
-                ],
-                startPoint: .top,
-                endPoint: .bottom
-            )
-            .ignoresSafeArea(edges: .top)
-        )
     }
 
     @ViewBuilder
@@ -388,6 +320,7 @@ struct RankColumn: Identifiable {
 struct HeroSection: View {
     let hero: [Movie]
     var isLoading: Bool = false
+    var onScrollToTop: () -> Void = {}
     @State private var activeHeroId: Int? = 0
 
     private var selectedIndex: Int {
@@ -412,47 +345,107 @@ struct HeroSection: View {
                     .shimmer()
             } else if !hero.isEmpty {
                 ZStack(alignment: .top) {
-                    // Immersive Ambient Blurred Backdrop Background
+                    // Immersive Ambient Blurred Backdrop Background spanning full top
                     if let movie = currentMovie {
                         RemoteImage(url: movie.bestPoster, contentMode: .fill)
                             .frame(maxWidth: .infinity)
-                            .frame(height: 560)
+                            .frame(height: 640)
                             .clipped()
                             .blur(radius: 50)
                             .opacity(0.44)
                             .overlay(
                                 LinearGradient(
                                     stops: [
-                                        .init(color: DFColor.bg.opacity(0.4), location: 0.0),
-                                        .init(color: .clear, location: 0.25),
-                                        .init(color: DFColor.bg.opacity(0.7), location: 0.65),
-                                        .init(color: DFColor.bg.opacity(0.95), location: 0.9),
+                                        .init(color: DFColor.bg.opacity(0.65), location: 0.0),
+                                        .init(color: .clear, location: 0.28),
+                                        .init(color: DFColor.bg.opacity(0.75), location: 0.65),
+                                        .init(color: DFColor.bg.opacity(0.95), location: 0.92),
                                         .init(color: DFColor.bg, location: 1.0)
                                     ],
                                     startPoint: .top,
                                     endPoint: .bottom
                                 )
                             )
-                            .offset(y: -50)
                             .animation(.easeInOut(duration: 0.4), value: selectedIndex)
                     }
 
-                    VStack(spacing: 14) {
-                        // Category Navigation Filter Chips
+                    VStack(spacing: 10) {
+                        // 1. Top Header Bar (Logo, Name, Search, Filter)
+                        topHeaderBar
+                            .padding(.top, 54) // Top inset for iPhone notch/Dynamic Island
+
+                        // 2. Category Navigation Filter Chips (Right below header with no gap)
                         categoryPills
 
-                        // 3D CoverFlow Card Carousel
+                        // 3. 3D CoverFlow Card Carousel
                         cardCarousel
 
-                        // Active Movie Details, Action Buttons, Badges, & Page Indicators
+                        // 4. Active Movie Details, Action Buttons, Badges, & Page Indicators
                         if let movie = currentMovie {
                             movieInfoSection(movie)
                         }
                     }
-                    .padding(.top, 4)
                 }
             }
         }
+    }
+
+    private var topHeaderBar: some View {
+        HStack(alignment: .center) {
+            Button {
+                onScrollToTop()
+            } label: {
+                HStack(spacing: 10) {
+                    Image("Logo")
+                        .resizable()
+                        .aspectRatio(contentMode: .fit)
+                        .frame(height: 36)
+                        .shadow(color: DFColor.gold.opacity(0.35), radius: 6)
+
+                    VStack(alignment: .leading, spacing: 1) {
+                        Text("DragonFilm")
+                            .font(.system(size: 19, weight: .black, design: .rounded))
+                            .foregroundStyle(.white)
+                        Text("Phim Chuẩn Điện Ảnh")
+                            .font(.system(size: 11, weight: .medium))
+                            .foregroundStyle(DFColor.textMuted)
+                    }
+                }
+            }
+            .buttonStyle(.plain)
+
+            Spacer()
+
+            HStack(spacing: 10) {
+                NavigationLink {
+                    SearchView()
+                } label: {
+                    Image(systemName: "magnifyingglass")
+                        .font(.system(size: 16, weight: .semibold))
+                        .foregroundStyle(.white)
+                        .frame(width: 38, height: 38)
+                        .background(Color.white.opacity(0.12))
+                        .clipShape(Circle())
+                        .overlay(Circle().stroke(Color.white.opacity(0.18), lineWidth: 0.8))
+                }
+                .buttonStyle(.plain)
+
+                NavigationLink {
+                    CatalogView(title: "Bộ Lọc Phim", initialFilter: CatalogFilter())
+                } label: {
+                    Image(systemName: "slider.horizontal.3")
+                        .font(.system(size: 15, weight: .semibold))
+                        .foregroundStyle(.white)
+                        .frame(width: 38, height: 38)
+                        .background(Color.white.opacity(0.12))
+                        .clipShape(Circle())
+                        .overlay(Circle().stroke(Color.white.opacity(0.18), lineWidth: 0.8))
+                }
+                .buttonStyle(.plain)
+            }
+        }
+        .padding(.horizontal, DFSpacing.xxl)
+        .padding(.bottom, 2)
     }
 
     private var categoryPills: some View {
