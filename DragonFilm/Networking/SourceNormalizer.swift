@@ -124,16 +124,18 @@ struct SourceNormalizer {
             case "detail": return "/phim/\(slug ?? "")"
             case "genre":  return "/v1/api/the-loai/\(slug ?? "")?page=\(page)"
             case "country": return "/v1/api/quoc-gia/\(slug ?? "")?page=\(page)"
-            default: return ""
+            case "type":   return "/v1/api/danh-sach/\(slug ?? "")?page=\(page)"
+            default: return "/v1/api/danh-sach/\(slug ?? operation)?page=\(page)"
             }
         case .nguonc:
             switch operation {
             case "latest": return "/api/films/phim-moi-cap-nhat?page=\(page)"
             case "search": return "/api/films/search?keyword=\(kw)&page=\(page)"
             case "detail": return "/api/film/\(slug ?? "")"
-            case "genre":  return "/api/films/danh-sach/\(slug ?? "")?page=\(page)"
+            case "genre":  return "/api/films/the-loai/\(slug ?? "")?page=\(page)"
             case "country": return "/api/films/quoc-gia/\(slug ?? "")?page=\(page)"
-            default: return ""
+            case "type":   return "/api/films/danh-sach/\(slug ?? "")?page=\(page)"
+            default: return "/api/films/danh-sach/\(slug ?? operation)?page=\(page)"
             }
         case .vsmov:
             switch operation {
@@ -142,7 +144,8 @@ struct SourceNormalizer {
             case "detail": return "/api/phim/\(slug ?? "")"
             case "genre":  return "/api/the-loai/\(slug ?? "")?page=\(page)"
             case "country": return "/api/quoc-gia/\(slug ?? "")?page=\(page)"
-            default: return ""
+            case "type":   return "/api/danh-sach/\(slug ?? "")?page=\(page)"
+            default: return "/api/danh-sach/\(slug ?? operation)?page=\(page)"
             }
         }
     }
