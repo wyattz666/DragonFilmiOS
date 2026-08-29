@@ -12,7 +12,7 @@
   <img src="https://img.shields.io/badge/Platform-iOS%2017.0+-000000.svg?style=flat&logo=apple" alt="Platform" />
   <img src="https://img.shields.io/badge/Language-Swift%205.9+-FA7343.svg?style=flat&logo=swift" alt="Language" />
   <img src="https://img.shields.io/badge/UI%20Framework-SwiftUI-0071e3.svg?style=flat" alt="SwiftUI" />
-  <img src="https://img.shields.io/badge/Release-v1.0.1-F5C518.svg?style=flat" alt="Release" />
+  <img src="https://img.shields.io/badge/Release-v1.0.2-F5C518.svg?style=flat" alt="Release" />
   <img src="https://img.shields.io/badge/License-MIT-blue.svg?style=flat" alt="License" />
 </p>
 

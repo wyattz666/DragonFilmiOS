@@ -225,8 +225,8 @@ struct ProfileView: View {
             Text("DragonFilm iOS")
                 .font(DFFont.caption().bold())
                 .foregroundStyle(DFColor.goldDim)
-            let version = Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "1.0.1"
-            let build = Bundle.main.infoDictionary?["CFBundleVersion"] as? String ?? "2"
+            let version = Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "1.0.2"
+            let build = Bundle.main.infoDictionary?["CFBundleVersion"] as? String ?? "3"
             Text("Phiên bản v\(version) (Build \(build))")
                 .font(DFFont.small())
                 .foregroundStyle(DFColor.textMuted)
