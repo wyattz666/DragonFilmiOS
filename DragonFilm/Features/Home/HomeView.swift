@@ -15,14 +15,13 @@ struct HomeView: View {
                             .frame(height: 0)
                             .id("home_top_anchor")
 
+                        // Spacing for sticky top header and category pills
+                        Color.clear
+                            .frame(height: 120)
+
                         HeroSection(
                             hero: viewModel.hero,
-                            isLoading: viewModel.isLoading && viewModel.hero.isEmpty,
-                            onScrollToTop: {
-                                withAnimation(.spring(response: 0.45, dampingFraction: 0.8)) {
-                                    proxy.scrollTo("home_top_anchor", anchor: .top)
-                                }
-                            }
+                            isLoading: viewModel.isLoading && viewModel.hero.isEmpty
                         )
 
                         VStack(spacing: DFSpacing.sectionH) {
@@ -78,16 +77,18 @@ struct HomeView: View {
                                 .padding(.top, DFSpacing.xxxl)
                             }
                         }
-                        .padding(.top, DFSpacing.xl)
+                        .padding(.top, DFSpacing.md)
                         .padding(.bottom, DFSpacing.xxxl)
                     }
                 }
-                .ignoresSafeArea(edges: .top)
                 .refreshable {
                     await viewModel.loadHome(force: true)
                     await viewModel.loadRankings(force: true)
                     await state.cloudSync.sync()
                 }
+
+                // Sticky Unified Cinema Top Header & Category Pills
+                stickyHeader(proxy: proxy)
             }
             .navigationBarHidden(true)
             .task {
@@ -95,6 +96,144 @@ struct HomeView: View {
                 await viewModel.loadRankings()
                 await state.cloudSync.sync()
             }
+        }
+    }
+
+    private func stickyHeader(proxy: ScrollViewProxy) -> some View {
+        VStack(spacing: 8) {
+            HStack(alignment: .center) {
+                Button {
+                    withAnimation(.spring(response: 0.45, dampingFraction: 0.8)) {
+                        proxy.scrollTo("home_top_anchor", anchor: .top)
+                    }
+                } label: {
+                    HStack(spacing: 10) {
+                        Image("Logo")
+                            .resizable()
+                            .aspectRatio(contentMode: .fit)
+                            .frame(height: 36)
+                            .shadow(color: DFColor.gold.opacity(0.35), radius: 6)
+
+                        VStack(alignment: .leading, spacing: 1) {
+                            Text("DragonFilm")
+                                .font(.system(size: 19, weight: .black, design: .rounded))
+                                .foregroundStyle(.white)
+                            Text("Phim Chuẩn Điện Ảnh")
+                                .font(.system(size: 11, weight: .medium))
+                                .foregroundStyle(DFColor.textMuted)
+                        }
+                    }
+                }
+                .buttonStyle(.plain)
+
+                Spacer()
+
+                HStack(spacing: 10) {
+                    NavigationLink {
+                        SearchView()
+                    } label: {
+                        Image(systemName: "magnifyingglass")
+                            .font(.system(size: 16, weight: .semibold))
+                            .foregroundStyle(.white)
+                            .frame(width: 38, height: 38)
+                            .background(Color.white.opacity(0.12))
+                            .clipShape(Circle())
+                            .overlay(Circle().stroke(Color.white.opacity(0.18), lineWidth: 0.8))
+                    }
+                    .buttonStyle(.plain)
+
+                    NavigationLink {
+                        CatalogView(title: "Bộ Lọc Phim", initialFilter: CatalogFilter())
+                    } label: {
+                        Image(systemName: "slider.horizontal.3")
+                            .font(.system(size: 15, weight: .semibold))
+                            .foregroundStyle(.white)
+                            .frame(width: 38, height: 38)
+                            .background(Color.white.opacity(0.12))
+                            .clipShape(Circle())
+                            .overlay(Circle().stroke(Color.white.opacity(0.18), lineWidth: 0.8))
+                    }
+                    .buttonStyle(.plain)
+                }
+            }
+            .padding(.horizontal, DFSpacing.xxl)
+            .padding(.top, 4)
+
+            // Category Navigation Filter Chips
+            categoryPills
+        }
+        .padding(.bottom, 8)
+        .background(
+            LinearGradient(
+                stops: [
+                    .init(color: DFColor.bg.opacity(0.96), location: 0.0),
+                    .init(color: DFColor.bg.opacity(0.85), location: 0.7),
+                    .init(color: DFColor.bg.opacity(0.0), location: 1.0)
+                ],
+                startPoint: .top,
+                endPoint: .bottom
+            )
+            .ignoresSafeArea(edges: .top)
+        )
+    }
+
+    private var categoryPills: some View {
+        ScrollView(.horizontal, showsIndicators: false) {
+            HStack(spacing: 8) {
+                // Active "Đề xuất" pill
+                Text("Đề xuất")
+                    .font(DFFont.caption().bold())
+                    .foregroundStyle(Color(hex: 0x07080A))
+                    .padding(.horizontal, 16)
+                    .padding(.vertical, 7)
+                    .background(Color.white)
+                    .clipShape(Capsule())
+                    .shadow(color: Color.white.opacity(0.25), radius: 4)
+
+                NavigationLink {
+                    CatalogView(title: "Phim Bộ", initialFilter: CatalogFilter(kind: .type, slug: "phim-bo", label: "Phim Bộ"))
+                } label: {
+                    Text("Phim bộ")
+                        .font(DFFont.caption().bold())
+                        .foregroundStyle(.white)
+                        .padding(.horizontal, 14)
+                        .padding(.vertical, 7)
+                        .background(Color.white.opacity(0.12))
+                        .clipShape(Capsule())
+                        .overlay(Capsule().stroke(Color.white.opacity(0.18), lineWidth: 0.8))
+                }
+
+                NavigationLink {
+                    CatalogView(title: "Phim Lẻ", initialFilter: CatalogFilter(kind: .type, slug: "phim-le", label: "Phim Lẻ"))
+                } label: {
+                    Text("Phim lẻ")
+                        .font(DFFont.caption().bold())
+                        .foregroundStyle(.white)
+                        .padding(.horizontal, 14)
+                        .padding(.vertical, 7)
+                        .background(Color.white.opacity(0.12))
+                        .clipShape(Capsule())
+                        .overlay(Capsule().stroke(Color.white.opacity(0.18), lineWidth: 0.8))
+                }
+
+                NavigationLink {
+                    CatalogView(title: "Khám Phá Thể Loại", initialFilter: CatalogFilter())
+                } label: {
+                    HStack(spacing: 4) {
+                        Text("Thể loại")
+                        Image(systemName: "chevron.down")
+                            .font(.system(size: 9, weight: .bold))
+                    }
+                    .font(DFFont.caption().bold())
+                    .foregroundStyle(.white)
+                    .padding(.horizontal, 14)
+                    .padding(.vertical, 7)
+                    .background(Color.white.opacity(0.12))
+                    .clipShape(Capsule())
+                    .overlay(Capsule().stroke(Color.white.opacity(0.18), lineWidth: 0.8))
+                }
+            }
+            .padding(.horizontal, DFSpacing.xxl)
         }
     }
 
@@ -320,12 +459,7 @@ struct RankColumn: Identifiable {
 struct HeroSection: View {
     let hero: [Movie]
     var isLoading: Bool = false
-    var onScrollToTop: () -> Void = {}
-    @State private var activeHeroId: Int? = 0
-
-    private var selectedIndex: Int {
-        activeHeroId ?? 0
-    }
+    @State private var selectedIndex: Int = 0
 
     private var currentMovie: Movie? {
         guard !hero.isEmpty, selectedIndex >= 0, selectedIndex < hero.count else { return hero.first }
@@ -333,55 +467,72 @@ struct HeroSection: View {
     }
 
     private let cardWidth: CGFloat = 220
-    private let cardHeight: CGFloat = 320
+    private let cardHeight: CGFloat = 315
 
     var body: some View {
         Group {
             if isLoading {
                 RoundedRectangle(cornerRadius: DFRadius.xl)
                     .fill(DFColor.bg3)
-                    .frame(height: 520)
+                    .frame(height: 480)
                     .padding(.horizontal, DFSpacing.xxl)
                     .shimmer()
             } else if !hero.isEmpty {
                 ZStack(alignment: .top) {
-                    // Immersive Ambient Blurred Backdrop Background spanning full hero
+                    // Immersive Ambient Blurred Backdrop Background
                     if let movie = currentMovie {
                         RemoteImage(url: movie.bestPoster, contentMode: .fill)
                             .frame(maxWidth: .infinity)
-                            .frame(height: 850)
+                            .frame(height: 620)
                             .clipped()
-                            .blur(radius: 55)
-                            .opacity(0.42)
+                            .blur(radius: 50)
+                            .opacity(0.38)
                             .overlay(
                                 LinearGradient(
                                     stops: [
-                                        .init(color: DFColor.bg.opacity(0.65), location: 0.0),
-                                        .init(color: .clear, location: 0.22),
-                                        .init(color: DFColor.bg.opacity(0.5), location: 0.45),
-                                        .init(color: DFColor.bg.opacity(0.9), location: 0.65),
-                                        .init(color: DFColor.bg, location: 0.76),
+                                        .init(color: DFColor.bg.opacity(0.7), location: 0.0),
+                                        .init(color: .clear, location: 0.25),
+                                        .init(color: DFColor.bg.opacity(0.6), location: 0.58),
+                                        .init(color: DFColor.bg.opacity(0.95), location: 0.85),
                                         .init(color: DFColor.bg, location: 1.0)
                                     ],
                                     startPoint: .top,
                                     endPoint: .bottom
                                 )
                             )
-                            .animation(.easeInOut(duration: 0.4), value: selectedIndex)
+                            .offset(y: -120)
+                            .animation(.easeInOut(duration: 0.35), value: selectedIndex)
                     }
 
-                    VStack(spacing: 10) {
-                        // 1. Top Header Bar (Logo, Name, Search, Filter)
-                        topHeaderBar
-                            .padding(.top, 54) // Top inset for iPhone notch/Dynamic Island
+                    VStack(spacing: 12) {
+                        // 1. Centered 3D Card Paging Carousel
+                        TabView(selection: $selectedIndex) {
+                            ForEach(Array(hero.prefix(8).enumerated()), id: \.offset) { index, movie in
+                                NavigationLink {
+                                    MovieDetailView(slug: movie.slug)
+                                } label: {
+                                    RemoteImage(url: movie.bestPoster, contentMode: .fill)
+                                        .frame(width: cardWidth, height: cardHeight)
+                                        .clipped()
+                                        .clipShape(RoundedRectangle(cornerRadius: 18))
+                                        .overlay(
+                                            RoundedRectangle(cornerRadius: 18)
+                                                .stroke(Color.white.opacity(selectedIndex == index ? 0.3 : 0.08), lineWidth: 1.0)
+                                        )
+                                        .shadow(color: Color.black.opacity(selectedIndex == index ? 0.8 : 0.4),
+                                                radius: selectedIndex == index ? 16 : 8,
+                                                y: selectedIndex == index ? 10 : 4)
+                                        .scaleEffect(selectedIndex == index ? 1.0 : 0.9)
+                                        .animation(.spring(response: 0.35, dampingFraction: 0.8), value: selectedIndex)
+                                }
+                                .buttonStyle(.plain)
+                                .tag(index)
+                            }
+                        }
+                        .tabViewStyle(.page(indexDisplayMode: .never))
+                        .frame(height: cardHeight + 10)
 
-                        // 2. Category Navigation Filter Chips (Right below header with no gap)
-                        categoryPills
-
-                        // 3. 3D CoverFlow Card Carousel
-                        cardCarousel
-
-                        // 4. Active Movie Details, Action Buttons, Badges, & Page Indicators
+                        // 2. Active Movie Details, Action Buttons, Badges, & Page Indicators
                         if let movie = currentMovie {
                             movieInfoSection(movie)
                         }
@@ -389,162 +540,6 @@ struct HeroSection: View {
                 }
             }
         }
-    }
-
-    private var topHeaderBar: some View {
-        HStack(alignment: .center) {
-            Button {
-                onScrollToTop()
-            } label: {
-                HStack(spacing: 10) {
-                    Image("Logo")
-                        .resizable()
-                        .aspectRatio(contentMode: .fit)
-                        .frame(height: 36)
-                        .shadow(color: DFColor.gold.opacity(0.35), radius: 6)
-
-                    VStack(alignment: .leading, spacing: 1) {
-                        Text("DragonFilm")
-                            .font(.system(size: 19, weight: .black, design: .rounded))
-                            .foregroundStyle(.white)
-                        Text("Phim Chuẩn Điện Ảnh")
-                            .font(.system(size: 11, weight: .medium))
-                            .foregroundStyle(DFColor.textMuted)
-                    }
-                }
-            }
-            .buttonStyle(.plain)
-
-            Spacer()
-
-            HStack(spacing: 10) {
-                NavigationLink {
-                    SearchView()
-                } label: {
-                    Image(systemName: "magnifyingglass")
-                        .font(.system(size: 16, weight: .semibold))
-                        .foregroundStyle(.white)
-                        .frame(width: 38, height: 38)
-                        .background(Color.white.opacity(0.12))
-                        .clipShape(Circle())
-                        .overlay(Circle().stroke(Color.white.opacity(0.18), lineWidth: 0.8))
-                }
-                .buttonStyle(.plain)
-
-                NavigationLink {
-                    CatalogView(title: "Bộ Lọc Phim", initialFilter: CatalogFilter())
-                } label: {
-                    Image(systemName: "slider.horizontal.3")
-                        .font(.system(size: 15, weight: .semibold))
-                        .foregroundStyle(.white)
-                        .frame(width: 38, height: 38)
-                        .background(Color.white.opacity(0.12))
-                        .clipShape(Circle())
-                        .overlay(Circle().stroke(Color.white.opacity(0.18), lineWidth: 0.8))
-                }
-                .buttonStyle(.plain)
-            }
-        }
-        .padding(.horizontal, DFSpacing.xxl)
-        .padding(.bottom, 2)
-    }
-
-    private var categoryPills: some View {
-        ScrollView(.horizontal, showsIndicators: false) {
-            HStack(spacing: 8) {
-                // Active "Đề xuất" pill
-                Text("Đề xuất")
-                    .font(DFFont.caption().bold())
-                    .foregroundStyle(Color(hex: 0x07080A))
-                    .padding(.horizontal, 16)
-                    .padding(.vertical, 7)
-                    .background(Color.white)
-                    .clipShape(Capsule())
-                    .shadow(color: Color.white.opacity(0.25), radius: 4)
-
-                NavigationLink {
-                    CatalogView(title: "Phim Bộ", initialFilter: CatalogFilter(kind: .type, slug: "phim-bo", label: "Phim Bộ"))
-                } label: {
-                    Text("Phim bộ")
-                        .font(DFFont.caption().bold())
-                        .foregroundStyle(.white)
-                        .padding(.horizontal, 14)
-                        .padding(.vertical, 7)
-                        .background(Color.white.opacity(0.12))
-                        .clipShape(Capsule())
-                        .overlay(Capsule().stroke(Color.white.opacity(0.18), lineWidth: 0.8))
-                }
-
-                NavigationLink {
-                    CatalogView(title: "Phim Lẻ", initialFilter: CatalogFilter(kind: .type, slug: "phim-le", label: "Phim Lẻ"))
-                } label: {
-                    Text("Phim lẻ")
-                        .font(DFFont.caption().bold())
-                        .foregroundStyle(.white)
-                        .padding(.horizontal, 14)
-                        .padding(.vertical, 7)
-                        .background(Color.white.opacity(0.12))
-                        .clipShape(Capsule())
-                        .overlay(Capsule().stroke(Color.white.opacity(0.18), lineWidth: 0.8))
-                }
-
-                NavigationLink {
-                    CatalogView(title: "Khám Phá Thể Loại", initialFilter: CatalogFilter())
-                } label: {
-                    HStack(spacing: 4) {
-                        Text("Thể loại")
-                        Image(systemName: "chevron.down")
-                            .font(.system(size: 9, weight: .bold))
-                    }
-                    .font(DFFont.caption().bold())
-                    .foregroundStyle(.white)
-                    .padding(.horizontal, 14)
-                    .padding(.vertical, 7)
-                    .background(Color.white.opacity(0.12))
-                    .clipShape(Capsule())
-                    .overlay(Capsule().stroke(Color.white.opacity(0.18), lineWidth: 0.8))
-                }
-            }
-            .padding(.horizontal, DFSpacing.xxl)
-        }
-    }
-
-    private var cardCarousel: some View {
-        ScrollView(.horizontal, showsIndicators: false) {
-            LazyHStack(spacing: 16) {
-                ForEach(Array(hero.prefix(8).enumerated()), id: \.offset) { index, movie in
-                    NavigationLink {
-                        MovieDetailView(slug: movie.slug)
-                    } label: {
-                        RemoteImage(url: movie.bestPoster, contentMode: .fill)
-                            .frame(width: cardWidth, height: cardHeight)
-                            .clipped()
-                            .clipShape(RoundedRectangle(cornerRadius: 18))
-                            .overlay(
-                                RoundedRectangle(cornerRadius: 18)
-                                    .stroke(Color.white.opacity(selectedIndex == index ? 0.25 : 0.08), lineWidth: 1.0)
-                            )
-                            .shadow(color: Color.black.opacity(selectedIndex == index ? 0.85 : 0.4), radius: selectedIndex == index ? 16 : 8, y: selectedIndex == index ? 10 : 4)
-                    }
-                    .buttonStyle(.plain)
-                    .scrollTransition(.interactive, axis: .horizontal) { content, phase in
-                        content
-                            .scaleEffect(phase.isIdentity ? 1.0 : 0.86)
-                            .opacity(phase.isIdentity ? 1.0 : 0.58)
-                            .rotation3DEffect(
-                                .degrees(phase.value * -14),
-                                axis: (x: 0, y: 1, z: 0)
-                            )
-                    }
-                    .id(index)
-                }
-            }
-            .scrollTargetLayout()
-        }
-        .scrollTargetBehavior(.viewAligned)
-        .scrollPosition(id: $activeHeroId)
-        .safeAreaPadding(.horizontal, max(0, (UIScreen.main.bounds.width - cardWidth) / 2))
-        .frame(height: cardHeight + 10)
     }
 
     private func movieInfoSection(_ movie: Movie) -> some View {
