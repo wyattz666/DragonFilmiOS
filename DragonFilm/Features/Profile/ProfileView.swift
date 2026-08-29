@@ -19,6 +19,8 @@ struct ProfileView: View {
                 } else {
                     guestCard
                 }
+
+                appVersionFooter
             }
             .padding(.horizontal, DFSpacing.xxl)
             .padding(.vertical, DFSpacing.xl)
@@ -216,6 +218,22 @@ struct ProfileView: View {
             .padding(DFSpacing.lg)
         }
         .buttonStyle(.plain)
+    }
+
+    private var appVersionFooter: some View {
+        VStack(spacing: 4) {
+            Text("DragonFilm iOS")
+                .font(DFFont.caption().bold())
+                .foregroundStyle(DFColor.goldDim)
+            let version = Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "1.0.1"
+            let build = Bundle.main.infoDictionary?["CFBundleVersion"] as? String ?? "2"
+            Text("Phiên bản v\(version) (Build \(build))")
+                .font(DFFont.small())
+                .foregroundStyle(DFColor.textMuted)
+        }
+        .frame(maxWidth: .infinity)
+        .padding(.top, DFSpacing.md)
+        .padding(.bottom, DFSpacing.xl)
     }
 }
 
