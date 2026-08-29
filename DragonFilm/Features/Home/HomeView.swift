@@ -345,21 +345,22 @@ struct HeroSection: View {
                     .shimmer()
             } else if !hero.isEmpty {
                 ZStack(alignment: .top) {
-                    // Immersive Ambient Blurred Backdrop Background spanning full top
+                    // Immersive Ambient Blurred Backdrop Background spanning full hero
                     if let movie = currentMovie {
                         RemoteImage(url: movie.bestPoster, contentMode: .fill)
                             .frame(maxWidth: .infinity)
-                            .frame(height: 640)
+                            .frame(height: 850)
                             .clipped()
-                            .blur(radius: 50)
-                            .opacity(0.44)
+                            .blur(radius: 55)
+                            .opacity(0.42)
                             .overlay(
                                 LinearGradient(
                                     stops: [
                                         .init(color: DFColor.bg.opacity(0.65), location: 0.0),
-                                        .init(color: .clear, location: 0.28),
-                                        .init(color: DFColor.bg.opacity(0.75), location: 0.65),
-                                        .init(color: DFColor.bg.opacity(0.95), location: 0.92),
+                                        .init(color: .clear, location: 0.22),
+                                        .init(color: DFColor.bg.opacity(0.5), location: 0.45),
+                                        .init(color: DFColor.bg.opacity(0.9), location: 0.65),
+                                        .init(color: DFColor.bg, location: 0.76),
                                         .init(color: DFColor.bg, location: 1.0)
                                     ],
                                     startPoint: .top,
