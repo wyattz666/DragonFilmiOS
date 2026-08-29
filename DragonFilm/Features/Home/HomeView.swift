@@ -101,16 +101,17 @@ struct HomeView: View {
                 }
             } label: {
                 HStack(spacing: 8) {
-                    Image(systemName: "flame.fill")
-                        .font(.system(size: 22, weight: .bold))
-                        .foregroundStyle(DFColor.goldGradient)
-                        .shadow(color: DFColor.gold.opacity(0.6), radius: 8)
+                    Image("Logo")
+                        .resizable()
+                        .aspectRatio(contentMode: .fit)
+                        .frame(height: 32)
+                        .shadow(color: DFColor.gold.opacity(0.35), radius: 6)
 
                     Text("DRAGONFILM")
-                        .font(.system(size: 20, weight: .black, design: .rounded))
+                        .font(.system(size: 19, weight: .black, design: .rounded))
                         .foregroundStyle(DFColor.goldGradient)
-                        .tracking(1.6)
-                        .shadow(color: DFColor.gold.opacity(0.4), radius: 6)
+                        .tracking(1.4)
+                        .shadow(color: DFColor.gold.opacity(0.3), radius: 6)
                 }
             }
             .buttonStyle(.plain)
