@@ -1,21 +1,20 @@
 import SwiftUI
 
-/// Genre / country / type filter for the "Phim Mới Cập Nhật" grid. Slugs match
-/// the upstream taxonomy the web client uses.
+/// Genre / country / type filter for the movie catalog.
 struct CatalogFilter: Equatable {
     var kind: Kind = .latest
     var slug: String = ""
     var label: String = ""
 
     enum Kind: String, CaseIterable {
-        case latest, genre, country, type
+        case latest, type, genre, country
 
         var title: String {
             switch self {
-            case .latest: return "Mới nhất"
+            case .latest: return "Đề xuất"
+            case .type: return "Loại phim"
             case .genre: return "Thể loại"
             case .country: return "Quốc gia"
-            case .type: return "Loại phim"
             }
         }
     }
@@ -27,6 +26,7 @@ struct CatalogFilter: Equatable {
 
 struct FilterSheet: View {
     let selection: CatalogFilter
+    var initialKind: CatalogFilter.Kind? = nil
     let onApply: (CatalogFilter) -> Void
 
     @Environment(\.dismiss) private var dismiss
@@ -34,10 +34,11 @@ struct FilterSheet: View {
     @State private var slug: String
     @State private var label: String
 
-    init(selection: CatalogFilter, onApply: @escaping (CatalogFilter) -> Void) {
+    init(selection: CatalogFilter, initialKind: CatalogFilter.Kind? = nil, onApply: @escaping (CatalogFilter) -> Void) {
         self.selection = selection
+        self.initialKind = initialKind
         self.onApply = onApply
-        _kind = State(initialValue: selection.kind)
+        _kind = State(initialValue: initialKind ?? (selection.kind == .latest ? .type : selection.kind))
         _slug = State(initialValue: selection.slug)
         _label = State(initialValue: selection.label)
     }
@@ -48,55 +49,56 @@ struct FilterSheet: View {
                 VStack(alignment: .leading, spacing: DFSpacing.xxl) {
                     kindPicker
 
-                    if kind != .latest {
-                        optionGrid
-                    }
+                    optionGrid
                 }
-                .padding(DFSpacing.xxl)
+                .padding(DFSpacing.xl)
             }
             .background(DFColor.bg)
-            .navigationTitle("Bộ lọc")
+            .navigationTitle("Bộ Lọc Phim")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .topBarLeading) {
-                    Button("Xóa lọc") {
+                    Button("Xóa bộ lọc") {
                         onApply(CatalogFilter())
                         dismiss()
                     }
+                    .font(DFFont.caption().bold())
                     .foregroundStyle(DFColor.textDim)
                 }
                 ToolbarItem(placement: .topBarTrailing) {
-                    Button("Áp dụng") {
-                        onApply(CatalogFilter(kind: kind, slug: slug, label: label))
+                    Button("Đóng") {
                         dismiss()
                     }
+                    .font(DFFont.caption().bold())
                     .foregroundStyle(DFColor.gold)
-                    .disabled(kind != .latest && slug.isEmpty)
                 }
             }
         }
+        .presentationDetents([.medium, .large])
+        .presentationDragIndicator(.visible)
         .preferredColorScheme(.dark)
     }
 
     private var kindPicker: some View {
-        VStack(alignment: .leading, spacing: DFSpacing.md) {
-            Text("KIỂU LỌC")
-                .font(DFFont.small())
-                .foregroundStyle(DFColor.textMuted)
-            HStack(spacing: DFSpacing.md) {
-                ForEach(CatalogFilter.Kind.allCases, id: \.rawValue) { item in
+        ScrollView(.horizontal, showsIndicators: false) {
+            HStack(spacing: DFSpacing.sm) {
+                ForEach(CatalogFilter.Kind.allCases.filter { $0 != .latest }, id: \.rawValue) { item in
                     Button {
-                        kind = item
-                        slug = ""
-                        label = ""
+                        withAnimation(.easeInOut(duration: 0.2)) {
+                            kind = item
+                        }
                     } label: {
                         Text(item.title)
-                            .font(DFFont.caption())
-                            .foregroundStyle(kind == item ? DFColor.bg : DFColor.textDim)
-                            .padding(.horizontal, DFSpacing.lg)
-                            .padding(.vertical, DFSpacing.md)
-                            .background(kind == item ? DFColor.gold : DFColor.bg3)
+                            .font(DFFont.caption().bold())
+                            .foregroundStyle(kind == item ? Color(hex: 0x07080A) : .white)
+                            .padding(.horizontal, 16)
+                            .padding(.vertical, 8)
+                            .background(kind == item ? DFColor.gold : Color.white.opacity(0.12))
                             .clipShape(Capsule())
+                            .overlay(
+                                Capsule()
+                                    .stroke(kind == item ? Color.clear : Color.white.opacity(0.15), lineWidth: 0.8)
+                            )
                     }
                     .buttonStyle(.plain)
                 }
@@ -107,22 +109,40 @@ struct FilterSheet: View {
     private var optionGrid: some View {
         VStack(alignment: .leading, spacing: DFSpacing.md) {
             Text(kind.title.uppercased())
-                .font(DFFont.small())
-                .foregroundStyle(DFColor.textMuted)
-            LazyVGrid(columns: Array(repeating: GridItem(.flexible(), spacing: DFSpacing.md), count: 2),
-                      spacing: DFSpacing.md) {
+                .font(DFFont.caption().bold())
+                .foregroundStyle(DFColor.goldDim)
+
+            LazyVGrid(columns: [
+                GridItem(.flexible(), spacing: 10),
+                GridItem(.flexible(), spacing: 10)
+            ], spacing: 10) {
                 ForEach(options, id: \.slug) { option in
+                    let isSelected = (selection.kind == kind && selection.slug == option.slug) || (slug == option.slug)
                     Button {
                         slug = option.slug
                         label = option.name
+                        onApply(CatalogFilter(kind: kind, slug: option.slug, label: option.name))
+                        dismiss()
                     } label: {
-                        Text(option.name)
-                            .font(DFFont.caption())
-                            .foregroundStyle(slug == option.slug ? DFColor.bg : DFColor.text)
-                            .frame(maxWidth: .infinity)
-                            .padding(.vertical, DFSpacing.lg)
-                            .background(slug == option.slug ? DFColor.gold : DFColor.bg3)
-                            .clipShape(RoundedRectangle(cornerRadius: DFRadius.md))
+                        HStack {
+                            Text(option.name)
+                                .font(DFFont.caption().bold())
+                                .foregroundStyle(isSelected ? Color(hex: 0x07080A) : .white)
+                            Spacer()
+                            if isSelected {
+                                Image(systemName: "checkmark.circle.fill")
+                                    .font(.system(size: 14, weight: .bold))
+                                    .foregroundStyle(Color(hex: 0x07080A))
+                            }
+                        }
+                        .padding(.horizontal, 14)
+                        .padding(.vertical, 12)
+                        .background(isSelected ? DFColor.gold : DFColor.cardBg)
+                        .clipShape(RoundedRectangle(cornerRadius: 12))
+                        .overlay(
+                            RoundedRectangle(cornerRadius: 12)
+                                .stroke(isSelected ? Color.clear : DFColor.border.opacity(0.4), lineWidth: 0.8)
+                        )
                     }
                     .buttonStyle(.plain)
                 }

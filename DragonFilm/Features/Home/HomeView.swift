@@ -17,80 +17,39 @@ struct HomeView: View {
 
                         // Spacing for sticky top header and category pills
                         Color.clear
-                            .frame(height: 120)
+                            .frame(height: 108)
 
-                        HeroSection(
-                            hero: viewModel.hero,
-                            isLoading: viewModel.isLoading && viewModel.hero.isEmpty
-                        )
-
-                        VStack(spacing: DFSpacing.sectionH) {
-                            ContinueWatchingSection(items: state.localStore.history().prefix(6).map { $0 })
-
-                            ForEach(viewModel.homeRows) { row in
-                                MovieRowSection(title: row.title, movies: row.items, filter: row.catalogFilter)
-                            }
-
-                            rankingSections
-
-                            if !viewModel.isLoading && !viewModel.homeRows.isEmpty {
-                                latestSection
-                            }
-
-                            CommentSection(movieKey: "dragonfilm_homepage",
-                                           movieName: "DragonFilm", title: "Bình luận chung")
-
-                            if viewModel.isLoading && viewModel.homeRows.isEmpty {
-                                HStack(spacing: DFSpacing.md) {
-                                    ProgressView()
-                                        .tint(DFColor.gold)
-                                    Text("Đang tải dữ liệu...")
-                                        .font(DFFont.caption())
-                                        .foregroundStyle(DFColor.textMuted)
-                                }
-                                .padding(.vertical, DFSpacing.xxxl)
-                            }
-
-                            if let loadError = viewModel.loadError, viewModel.homeRows.isEmpty {
-                                VStack(spacing: DFSpacing.lg) {
-                                    Image(systemName: "wifi.exclamationmark")
-                                        .font(.system(size: 44))
-                                        .foregroundStyle(DFColor.goldDim)
-                                    Text(loadError)
-                                        .font(DFFont.body())
-                                        .foregroundStyle(DFColor.textDim)
-                                        .multilineTextAlignment(.center)
-                                    Button("Thử lại") {
-                                        Task {
-                                            await viewModel.loadHome(force: true)
-                                            await viewModel.loadRankings(force: true)
-                                        }
-                                    }
-                                    .font(DFFont.headline())
-                                    .foregroundStyle(DFColor.bg)
-                                    .padding(.horizontal, DFSpacing.xxl)
-                                    .padding(.vertical, DFSpacing.md)
-                                    .background(DFColor.gold)
-                                    .clipShape(RoundedRectangle(cornerRadius: DFRadius.md))
-                                }
-                                .padding(.horizontal, DFSpacing.xxl)
-                                .padding(.top, DFSpacing.xxxl)
-                            }
+                        if !viewModel.filter.isEmpty {
+                            // Active Filter Results Grid
+                            filteredCatalogSection
+                        } else {
+                            // Standard Home Feed Content
+                            standardHomeFeed
                         }
-                        .padding(.top, DFSpacing.md)
-                        .padding(.bottom, DFSpacing.xxxl)
                     }
+                    .padding(.bottom, DFSpacing.xxxl)
                 }
                 .refreshable {
-                    await viewModel.loadHome(force: true)
-                    await viewModel.loadRankings(force: true)
-                    await state.cloudSync.sync()
+                    if !viewModel.filter.isEmpty {
+                        await viewModel.applyFilter(viewModel.filter)
+                    } else {
+                        await viewModel.loadHome(force: true)
+                        await viewModel.loadRankings(force: true)
+                        await state.cloudSync.sync()
+                    }
                 }
 
-                // Sticky Unified Cinema Top Header & Category Pills
+                // Sticky Unified Cinema Top Header & Category Navigation Bar
                 stickyHeader(proxy: proxy)
             }
             .navigationBarHidden(true)
+            .sheet(isPresented: $viewModel.showFilterSheet) {
+                FilterSheet(selection: viewModel.filter, initialKind: viewModel.filterSheetKind) { newFilter in
+                    Task {
+                        await viewModel.applyFilter(newFilter)
+                    }
+                }
+            }
             .task {
                 await viewModel.loadHome()
                 await viewModel.loadRankings()
@@ -99,8 +58,11 @@ struct HomeView: View {
         }
     }
 
+    // MARK: - Sticky Header & Category Navigation
+
     private func stickyHeader(proxy: ScrollViewProxy) -> some View {
         VStack(spacing: 8) {
+            // Brand & Actions Bar
             HStack(alignment: .center) {
                 Button {
                     withAnimation(.spring(response: 0.45, dampingFraction: 0.8)) {
@@ -142,16 +104,16 @@ struct HomeView: View {
                     }
                     .buttonStyle(.plain)
 
-                    NavigationLink {
-                        CatalogView(title: "Bộ Lọc Phim", initialFilter: CatalogFilter())
+                    Button {
+                        viewModel.openFilter(kind: nil)
                     } label: {
                         Image(systemName: "slider.horizontal.3")
                             .font(.system(size: 15, weight: .semibold))
-                            .foregroundStyle(.white)
+                            .foregroundStyle(viewModel.filter.isEmpty ? .white : Color(hex: 0x07080A))
                             .frame(width: 38, height: 38)
-                            .background(Color.white.opacity(0.12))
+                            .background(viewModel.filter.isEmpty ? Color.white.opacity(0.12) : DFColor.gold)
                             .clipShape(Circle())
-                            .overlay(Circle().stroke(Color.white.opacity(0.18), lineWidth: 0.8))
+                            .overlay(Circle().stroke(viewModel.filter.isEmpty ? Color.white.opacity(0.18) : Color.clear, lineWidth: 0.8))
                     }
                     .buttonStyle(.plain)
                 }
@@ -167,7 +129,7 @@ struct HomeView: View {
             LinearGradient(
                 stops: [
                     .init(color: DFColor.bg.opacity(0.96), location: 0.0),
-                    .init(color: DFColor.bg.opacity(0.85), location: 0.7),
+                    .init(color: DFColor.bg.opacity(0.88), location: 0.75),
                     .init(color: DFColor.bg.opacity(0.0), location: 1.0)
                 ],
                 startPoint: .top,
@@ -180,62 +142,288 @@ struct HomeView: View {
     private var categoryPills: some View {
         ScrollView(.horizontal, showsIndicators: false) {
             HStack(spacing: 8) {
-                // Active "Đề xuất" pill
-                Text("Đề xuất")
-                    .font(DFFont.caption().bold())
-                    .foregroundStyle(Color(hex: 0x07080A))
-                    .padding(.horizontal, 16)
-                    .padding(.vertical, 7)
-                    .background(Color.white)
-                    .clipShape(Capsule())
-                    .shadow(color: Color.white.opacity(0.25), radius: 4)
+                // 1. "Đề xuất" (Default home feed)
+                Button {
+                    Task {
+                        await viewModel.applyFilter(CatalogFilter())
+                    }
+                } label: {
+                    Text("Đề xuất")
+                        .font(DFFont.caption().bold())
+                        .foregroundStyle(viewModel.filter.isEmpty ? Color(hex: 0x07080A) : .white)
+                        .padding(.horizontal, 16)
+                        .padding(.vertical, 7)
+                        .background(viewModel.filter.isEmpty ? Color.white : Color.white.opacity(0.12))
+                        .clipShape(Capsule())
+                        .overlay(
+                            Capsule().stroke(viewModel.filter.isEmpty ? Color.clear : Color.white.opacity(0.18), lineWidth: 0.8)
+                        )
+                }
+                .buttonStyle(.plain)
 
-                NavigationLink {
-                    CatalogView(title: "Phim Bộ", initialFilter: CatalogFilter(kind: .type, slug: "phim-bo", label: "Phim Bộ"))
+                // 2. "Phim bộ"
+                let isPhimBo = viewModel.filter.kind == .type && viewModel.filter.slug == "phim-bo"
+                Button {
+                    Task {
+                        if isPhimBo {
+                            await viewModel.applyFilter(CatalogFilter())
+                        } else {
+                            await viewModel.applyFilter(CatalogFilter(kind: .type, slug: "phim-bo", label: "Phim Bộ"))
+                        }
+                    }
                 } label: {
                     Text("Phim bộ")
                         .font(DFFont.caption().bold())
-                        .foregroundStyle(.white)
+                        .foregroundStyle(isPhimBo ? Color(hex: 0x07080A) : .white)
                         .padding(.horizontal, 14)
                         .padding(.vertical, 7)
-                        .background(Color.white.opacity(0.12))
+                        .background(isPhimBo ? DFColor.gold : Color.white.opacity(0.12))
                         .clipShape(Capsule())
-                        .overlay(Capsule().stroke(Color.white.opacity(0.18), lineWidth: 0.8))
+                        .overlay(Capsule().stroke(isPhimBo ? Color.clear : Color.white.opacity(0.18), lineWidth: 0.8))
                 }
+                .buttonStyle(.plain)
 
-                NavigationLink {
-                    CatalogView(title: "Phim Lẻ", initialFilter: CatalogFilter(kind: .type, slug: "phim-le", label: "Phim Lẻ"))
+                // 3. "Phim lẻ"
+                let isPhimLe = viewModel.filter.kind == .type && viewModel.filter.slug == "phim-le"
+                Button {
+                    Task {
+                        if isPhimLe {
+                            await viewModel.applyFilter(CatalogFilter())
+                        } else {
+                            await viewModel.applyFilter(CatalogFilter(kind: .type, slug: "phim-le", label: "Phim Lẻ"))
+                        }
+                    }
                 } label: {
                     Text("Phim lẻ")
                         .font(DFFont.caption().bold())
-                        .foregroundStyle(.white)
+                        .foregroundStyle(isPhimLe ? Color(hex: 0x07080A) : .white)
                         .padding(.horizontal, 14)
                         .padding(.vertical, 7)
-                        .background(Color.white.opacity(0.12))
+                        .background(isPhimLe ? DFColor.gold : Color.white.opacity(0.12))
                         .clipShape(Capsule())
-                        .overlay(Capsule().stroke(Color.white.opacity(0.18), lineWidth: 0.8))
+                        .overlay(Capsule().stroke(isPhimLe ? Color.clear : Color.white.opacity(0.18), lineWidth: 0.8))
                 }
+                .buttonStyle(.plain)
 
-                NavigationLink {
-                    CatalogView(title: "Khám Phá Thể Loại", initialFilter: CatalogFilter())
+                // 4. "Hoạt hình"
+                let isHoatHinh = viewModel.filter.kind == .type && viewModel.filter.slug == "hoat-hinh"
+                Button {
+                    Task {
+                        if isHoatHinh {
+                            await viewModel.applyFilter(CatalogFilter())
+                        } else {
+                            await viewModel.applyFilter(CatalogFilter(kind: .type, slug: "hoat-hinh", label: "Hoạt Hình"))
+                        }
+                    }
+                } label: {
+                    Text("Hoạt hình")
+                        .font(DFFont.caption().bold())
+                        .foregroundStyle(isHoatHinh ? Color(hex: 0x07080A) : .white)
+                        .padding(.horizontal, 14)
+                        .padding(.vertical, 7)
+                        .background(isHoatHinh ? DFColor.gold : Color.white.opacity(0.12))
+                        .clipShape(Capsule())
+                        .overlay(Capsule().stroke(isHoatHinh ? Color.clear : Color.white.opacity(0.18), lineWidth: 0.8))
+                }
+                .buttonStyle(.plain)
+
+                // 5. "Thể loại ⌄" (Opens Genre Sheet Popup)
+                let isGenre = viewModel.filter.kind == .genre
+                Button {
+                    viewModel.openFilter(kind: .genre)
                 } label: {
                     HStack(spacing: 4) {
-                        Text("Thể loại")
+                        Text(isGenre ? viewModel.filter.label : "Thể loại")
                         Image(systemName: "chevron.down")
                             .font(.system(size: 9, weight: .bold))
                     }
                     .font(DFFont.caption().bold())
-                    .foregroundStyle(.white)
+                    .foregroundStyle(isGenre ? Color(hex: 0x07080A) : .white)
                     .padding(.horizontal, 14)
                     .padding(.vertical, 7)
-                    .background(Color.white.opacity(0.12))
+                    .background(isGenre ? DFColor.gold : Color.white.opacity(0.12))
                     .clipShape(Capsule())
-                    .overlay(Capsule().stroke(Color.white.opacity(0.18), lineWidth: 0.8))
+                    .overlay(Capsule().stroke(isGenre ? Color.clear : Color.white.opacity(0.18), lineWidth: 0.8))
                 }
+                .buttonStyle(.plain)
+
+                // 6. "Quốc gia ⌄" (Opens Country Sheet Popup)
+                let isCountry = viewModel.filter.kind == .country
+                Button {
+                    viewModel.openFilter(kind: .country)
+                } label: {
+                    HStack(spacing: 4) {
+                        Text(isCountry ? viewModel.filter.label : "Quốc gia")
+                        Image(systemName: "chevron.down")
+                            .font(.system(size: 9, weight: .bold))
+                    }
+                    .font(DFFont.caption().bold())
+                    .foregroundStyle(isCountry ? Color(hex: 0x07080A) : .white)
+                    .padding(.horizontal, 14)
+                    .padding(.vertical, 7)
+                    .background(isCountry ? DFColor.gold : Color.white.opacity(0.12))
+                    .clipShape(Capsule())
+                    .overlay(Capsule().stroke(isCountry ? Color.clear : Color.white.opacity(0.18), lineWidth: 0.8))
+                }
+                .buttonStyle(.plain)
             }
             .padding(.horizontal, DFSpacing.xxl)
         }
     }
+
+    // MARK: - Active Filter Catalog Section
+
+    @ViewBuilder
+    private var filteredCatalogSection: some View {
+        VStack(alignment: .leading, spacing: DFSpacing.lg) {
+            // Filter Bar Indicator
+            HStack(spacing: 8) {
+                HStack(spacing: 6) {
+                    Image(systemName: "line.3.horizontal.decrease.circle.fill")
+                        .foregroundStyle(DFColor.gold)
+                    Text(viewModel.filter.displayTitle)
+                        .font(DFFont.headline())
+                        .foregroundStyle(.white)
+                }
+
+                Spacer()
+
+                Button {
+                    Task {
+                        await viewModel.applyFilter(CatalogFilter())
+                    }
+                } label: {
+                    HStack(spacing: 4) {
+                        Image(systemName: "xmark.circle.fill")
+                        Text("Xóa lọc")
+                    }
+                    .font(DFFont.caption().bold())
+                    .foregroundStyle(DFColor.gold)
+                    .padding(.horizontal, 12)
+                    .padding(.vertical, 5)
+                    .background(DFColor.gold.opacity(0.15))
+                    .clipShape(Capsule())
+                }
+                .buttonStyle(.plain)
+            }
+            .padding(.horizontal, DFSpacing.xxl)
+            .padding(.top, DFSpacing.sm)
+
+            if viewModel.isLoadingFiltered {
+                HStack(spacing: DFSpacing.md) {
+                    ProgressView()
+                        .tint(DFColor.gold)
+                    Text("Đang tải danh sách phim...")
+                        .font(DFFont.caption())
+                        .foregroundStyle(DFColor.textMuted)
+                }
+                .frame(maxWidth: .infinity)
+                .padding(.vertical, DFSpacing.xxxl)
+            } else if viewModel.filteredMovies.isEmpty {
+                VStack(spacing: DFSpacing.md) {
+                    Image(systemName: "film")
+                        .font(.system(size: 40))
+                        .foregroundStyle(DFColor.textMuted)
+                    Text("Không tìm thấy phim phù hợp.")
+                        .font(DFFont.body())
+                        .foregroundStyle(DFColor.textDim)
+                }
+                .frame(maxWidth: .infinity)
+                .padding(.vertical, DFSpacing.xxxl)
+            } else {
+                let cardWidth = (UIScreen.main.bounds.width - DFSpacing.xxl * 2 - DFSpacing.md * 2) / 3
+
+                LazyVGrid(columns: Array(repeating: GridItem(.flexible(), spacing: DFSpacing.md), count: 3),
+                          spacing: DFSpacing.xl) {
+                    ForEach(viewModel.filteredMovies) { movie in
+                        NavigationLink {
+                            MovieDetailView(slug: movie.slug)
+                        } label: {
+                            PosterCard(imageURL: movie.bestPoster, title: movie.name,
+                                       subtitle: movie.yearString, badge: movie.episodeCurrent,
+                                       width: cardWidth)
+                        }
+                        .buttonStyle(.plain)
+                        .onAppear {
+                            if movie.id == viewModel.filteredMovies.last?.id {
+                                Task { await viewModel.loadMoreFiltered() }
+                            }
+                        }
+                    }
+                }
+                .padding(.horizontal, DFSpacing.xxl)
+
+                if viewModel.isLoadingMore {
+                    ProgressView()
+                        .tint(DFColor.gold)
+                        .frame(maxWidth: .infinity)
+                        .padding(.vertical, DFSpacing.xl)
+                }
+            }
+        }
+    }
+
+    // MARK: - Standard Home Feed
+
+    @ViewBuilder
+    private var standardHomeFeed: some View {
+        VStack(spacing: DFSpacing.sectionH) {
+            ContinueWatchingSection(items: state.localStore.history().prefix(6).map { $0 })
+
+            ForEach(viewModel.homeRows) { row in
+                MovieRowSection(title: row.title, movies: row.items, filter: row.catalogFilter)
+            }
+
+            rankingSections
+
+            if !viewModel.isLoading && !viewModel.homeRows.isEmpty {
+                latestSection
+            }
+
+            CommentSection(movieKey: "dragonfilm_homepage",
+                           movieName: "DragonFilm", title: "Bình luận chung")
+
+            if viewModel.isLoading && viewModel.homeRows.isEmpty {
+                HStack(spacing: DFSpacing.md) {
+                    ProgressView()
+                        .tint(DFColor.gold)
+                    Text("Đang tải dữ liệu...")
+                        .font(DFFont.caption())
+                        .foregroundStyle(DFColor.textMuted)
+                }
+                .padding(.vertical, DFSpacing.xxxl)
+            }
+
+            if let loadError = viewModel.loadError, viewModel.homeRows.isEmpty {
+                VStack(spacing: DFSpacing.lg) {
+                    Image(systemName: "wifi.exclamationmark")
+                        .font(.system(size: 44))
+                        .foregroundStyle(DFColor.goldDim)
+                    Text(loadError)
+                        .font(DFFont.body())
+                        .foregroundStyle(DFColor.textDim)
+                        .multilineTextAlignment(.center)
+                    Button("Thử lại") {
+                        Task {
+                            await viewModel.loadHome(force: true)
+                            await viewModel.loadRankings(force: true)
+                        }
+                    }
+                    .font(DFFont.headline())
+                    .foregroundStyle(DFColor.bg)
+                    .padding(.horizontal, DFSpacing.xxl)
+                    .padding(.vertical, DFSpacing.md)
+                    .background(DFColor.gold)
+                    .clipShape(RoundedRectangle(cornerRadius: DFRadius.md))
+                }
+                .padding(.horizontal, DFSpacing.xxl)
+                .padding(.top, DFSpacing.xxxl)
+            }
+        }
+        .padding(.top, DFSpacing.sm)
+    }
+
+    // MARK: - Rankings
 
     @ViewBuilder
     private var rankingSections: some View {
@@ -295,8 +483,8 @@ struct HomeView: View {
         }
 
         if !viewModel.tmdbCN.isEmpty {
-            RankingPanel(title: "Top phim Trung tuần", subtitle: "TV series nổi bật",
-                         badgeLabel: "TMDB Trung", badgeColor: DFColor.goldDim) {
+            RankingPanel(title: "Phim Trung hot hit", subtitle: "TV series được quan tâm",
+                         badgeLabel: "TMDB Trung", badgeColor: Color(hex: 0x9B2226)) {
                 ForEach(rankColumns(viewModel.tmdbCN.count)) { column in
                     VStack(spacing: DFSpacing.sm) {
                         ForEach(column.range, id: \.self) { i in
@@ -381,27 +569,12 @@ struct HomeView: View {
         }
     }
 
-    /// Infinite-scroll grid replacing the web's paginated "Phim Mới Cập Nhật".
+    // MARK: - Latest Grid (Infinite Scroll)
+
     @ViewBuilder
     private var latestSection: some View {
         VStack(alignment: .leading, spacing: DFSpacing.lg) {
-            HStack {
-                SectionHeader(title: viewModel.latestTitle)
-                Spacer()
-                Button { viewModel.showFilters = true } label: {
-                    HStack(spacing: 4) {
-                        Image(systemName: "line.3.horizontal.decrease.circle.fill")
-                        Text("Bộ lọc")
-                    }
-                    .font(DFFont.caption())
-                    .foregroundStyle(DFColor.gold)
-                    .padding(.horizontal, DFSpacing.md)
-                    .padding(.vertical, 6)
-                    .background(DFColor.gold.opacity(0.12))
-                    .clipShape(Capsule())
-                }
-                .padding(.trailing, DFSpacing.xxl)
-            }
+            SectionHeader(title: "Phim Mới Cập Nhật")
 
             let cardWidth = (UIScreen.main.bounds.width - DFSpacing.xxl * 2 - DFSpacing.md * 2) / 3
 
@@ -425,7 +598,7 @@ struct HomeView: View {
             }
             .padding(.horizontal, DFSpacing.xxl)
 
-            if viewModel.isLoadingMore {
+            if viewModel.isLoadingMoreLatest {
                 ProgressView()
                     .tint(DFColor.gold)
                     .frame(maxWidth: .infinity)
@@ -433,12 +606,7 @@ struct HomeView: View {
             }
         }
         .task {
-            if viewModel.filter.isEmpty { await viewModel.loadLatest() }
-        }
-        .sheet(isPresented: $viewModel.showFilters) {
-            FilterSheet(selection: viewModel.filter) { newFilter in
-                Task { await viewModel.applyFilter(newFilter) }
-            }
+            await viewModel.loadLatest()
         }
     }
 
@@ -454,228 +622,6 @@ struct RankColumn: Identifiable {
     let end: Int
     var id: Int { start }
     var range: Range<Int> { start..<end }
-}
-
-struct HeroSection: View {
-    let hero: [Movie]
-    var isLoading: Bool = false
-    @State private var selectedIndex: Int = 0
-
-    private var currentMovie: Movie? {
-        guard !hero.isEmpty, selectedIndex >= 0, selectedIndex < hero.count else { return hero.first }
-        return hero[selectedIndex]
-    }
-
-    private let cardWidth: CGFloat = 220
-    private let cardHeight: CGFloat = 315
-
-    var body: some View {
-        Group {
-            if isLoading {
-                RoundedRectangle(cornerRadius: DFRadius.xl)
-                    .fill(DFColor.bg3)
-                    .frame(height: 480)
-                    .padding(.horizontal, DFSpacing.xxl)
-                    .shimmer()
-            } else if !hero.isEmpty {
-                ZStack(alignment: .top) {
-                    // Immersive Ambient Blurred Backdrop Background
-                    if let movie = currentMovie {
-                        RemoteImage(url: movie.bestPoster, contentMode: .fill)
-                            .frame(maxWidth: .infinity)
-                            .frame(height: 620)
-                            .clipped()
-                            .blur(radius: 50)
-                            .opacity(0.38)
-                            .overlay(
-                                LinearGradient(
-                                    stops: [
-                                        .init(color: DFColor.bg.opacity(0.7), location: 0.0),
-                                        .init(color: .clear, location: 0.25),
-                                        .init(color: DFColor.bg.opacity(0.6), location: 0.58),
-                                        .init(color: DFColor.bg.opacity(0.95), location: 0.85),
-                                        .init(color: DFColor.bg, location: 1.0)
-                                    ],
-                                    startPoint: .top,
-                                    endPoint: .bottom
-                                )
-                            )
-                            .offset(y: -120)
-                            .animation(.easeInOut(duration: 0.35), value: selectedIndex)
-                    }
-
-                    VStack(spacing: 12) {
-                        // 1. Centered 3D Card Paging Carousel
-                        TabView(selection: $selectedIndex) {
-                            ForEach(Array(hero.prefix(8).enumerated()), id: \.offset) { index, movie in
-                                NavigationLink {
-                                    MovieDetailView(slug: movie.slug)
-                                } label: {
-                                    RemoteImage(url: movie.bestPoster, contentMode: .fill)
-                                        .frame(width: cardWidth, height: cardHeight)
-                                        .clipped()
-                                        .clipShape(RoundedRectangle(cornerRadius: 18))
-                                        .overlay(
-                                            RoundedRectangle(cornerRadius: 18)
-                                                .stroke(Color.white.opacity(selectedIndex == index ? 0.3 : 0.08), lineWidth: 1.0)
-                                        )
-                                        .shadow(color: Color.black.opacity(selectedIndex == index ? 0.8 : 0.4),
-                                                radius: selectedIndex == index ? 16 : 8,
-                                                y: selectedIndex == index ? 10 : 4)
-                                        .scaleEffect(selectedIndex == index ? 1.0 : 0.9)
-                                        .animation(.spring(response: 0.35, dampingFraction: 0.8), value: selectedIndex)
-                                }
-                                .buttonStyle(.plain)
-                                .tag(index)
-                            }
-                        }
-                        .tabViewStyle(.page(indexDisplayMode: .never))
-                        .frame(height: cardHeight + 10)
-
-                        // 2. Active Movie Details, Action Buttons, Badges, & Page Indicators
-                        if let movie = currentMovie {
-                            movieInfoSection(movie)
-                        }
-                    }
-                }
-            }
-        }
-    }
-
-    private func movieInfoSection(_ movie: Movie) -> some View {
-        VStack(spacing: 12) {
-            // Movie Title & Original Name
-            VStack(spacing: 4) {
-                Text(movie.name)
-                    .font(.system(size: 24, weight: .black, design: .rounded))
-                    .foregroundStyle(.white)
-                    .multilineTextAlignment(.center)
-                    .lineLimit(1)
-                    .shadow(color: .black.opacity(0.8), radius: 6, y: 3)
-
-                if !movie.originName.isEmpty {
-                    Text(movie.originName)
-                        .font(DFFont.caption())
-                        .foregroundStyle(DFColor.textMuted)
-                        .lineLimit(1)
-                }
-            }
-            .padding(.horizontal, DFSpacing.xl)
-
-            // Primary Action Buttons Row
-            HStack(spacing: 12) {
-                NavigationLink {
-                    MovieDetailView(slug: movie.slug)
-                } label: {
-                    HStack(spacing: 8) {
-                        Image(systemName: "play.fill")
-                            .font(.system(size: 14, weight: .bold))
-                        Text("Xem Phim")
-                            .font(DFFont.headline())
-                    }
-                    .foregroundStyle(Color(hex: 0x07080A))
-                    .frame(maxWidth: .infinity)
-                    .frame(height: 44)
-                    .background(DFColor.goldGradient)
-                    .clipShape(RoundedRectangle(cornerRadius: 12))
-                    .shadow(color: DFColor.gold.opacity(0.4), radius: 8, y: 3)
-                }
-                .buttonStyle(.plain)
-
-                NavigationLink {
-                    MovieDetailView(slug: movie.slug)
-                } label: {
-                    HStack(spacing: 8) {
-                        Image(systemName: "info.circle.fill")
-                            .font(.system(size: 15))
-                        Text("Thông tin")
-                            .font(DFFont.headline())
-                    }
-                    .foregroundStyle(.white)
-                    .frame(maxWidth: .infinity)
-                    .frame(height: 44)
-                    .background(Color.white.opacity(0.14))
-                    .clipShape(RoundedRectangle(cornerRadius: 12))
-                    .overlay(
-                        RoundedRectangle(cornerRadius: 12)
-                            .stroke(Color.white.opacity(0.2), lineWidth: 0.8)
-                    )
-                }
-                .buttonStyle(.plain)
-            }
-            .padding(.horizontal, DFSpacing.xxl)
-            .padding(.top, 2)
-
-            // Badges Row
-            HStack(spacing: 6) {
-                // Rating Pill (IMDb 9.6 / TMDB 8.8)
-                let score = movie.formattedScore
-                Text("\(score.label) \(score.score)")
-                    .font(DFFont.caption().bold())
-                    .foregroundStyle(DFColor.gold)
-                    .padding(.horizontal, 8)
-                    .padding(.vertical, 3.5)
-                    .background(
-                        Capsule()
-                            .fill(DFColor.gold.opacity(0.15))
-                            .overlay(Capsule().stroke(DFColor.gold.opacity(0.5), lineWidth: 0.8))
-                    )
-
-                // Quality Pill (HD)
-                Text(movie.cleanQuality)
-                    .font(DFFont.small().bold())
-                    .foregroundStyle(Color(hex: 0x07080A))
-                    .padding(.horizontal, 6)
-                    .padding(.vertical, 3)
-                    .background(DFColor.gold)
-                    .clipShape(RoundedRectangle(cornerRadius: 4))
-
-                // Year Pill (2026)
-                if !movie.yearString.isEmpty {
-                    Text(movie.yearString)
-                        .font(DFFont.caption().bold())
-                        .foregroundStyle(.white)
-                        .padding(.horizontal, 8)
-                        .padding(.vertical, 3.5)
-                        .background(Color.white.opacity(0.12))
-                        .clipShape(RoundedRectangle(cornerRadius: 4))
-                }
-
-                // Episode Pill
-                Text(movie.episodeBadge)
-                    .font(DFFont.caption().bold())
-                    .foregroundStyle(.white)
-                    .padding(.horizontal, 8)
-                    .padding(.vertical, 3.5)
-                    .background(Color.white.opacity(0.12))
-                    .clipShape(RoundedRectangle(cornerRadius: 4))
-            }
-
-            // Genre Line
-            Text(movie.categoryString)
-                .font(DFFont.caption().bold())
-                .foregroundStyle(DFColor.goldDim)
-                .lineLimit(1)
-
-            // Pagination Dots
-            HStack(spacing: 5) {
-                ForEach(0..<min(hero.count, 8), id: \.self) { idx in
-                    if selectedIndex == idx {
-                        Capsule()
-                            .fill(DFColor.goldGradient)
-                            .frame(width: 22, height: 4)
-                            .animation(.spring(response: 0.35), value: selectedIndex)
-                    } else {
-                        Circle()
-                            .fill(Color.white.opacity(0.28))
-                            .frame(width: 4.5, height: 4.5)
-                            .animation(.spring(response: 0.35), value: selectedIndex)
-                    }
-                }
-            }
-            .padding(.top, 4)
-        }
-    }
 }
 
 struct ContinueWatchingSection: View {
@@ -788,10 +734,11 @@ extension HomeRow {
     }
 }
 
+// MARK: - HomeViewModel
+
 @Observable
 final class HomeViewModel {
     var homeRows: [HomeRow] = []
-    var hero: [Movie] = []
     var isLoading = false
     var loadError: String?
 
@@ -803,16 +750,98 @@ final class HomeViewModel {
     var seasonLabel = "Trending mùa này"
     private var rankingsLoaded = false
 
+    // Catalog Filtering In-Place
+    var filter = CatalogFilter()
+    var showFilterSheet = false
+    var filterSheetKind: CatalogFilter.Kind? = nil
+
+    var filteredMovies: [Movie] = []
+    var filteredPage = 1
+    var filteredTotalPages = 1
+    var isLoadingFiltered = false
+    var isLoadingMore = false
+
+    // Latest Section
     var latest: [Movie] = []
     var latestPage = 1
-    var totalPages = 1
-    var isLoadingMore = false
-    var showFilters = false
-    var filter = CatalogFilter()
+    var latestTotalPages = 1
+    var isLoadingMoreLatest = false
 
-    var latestTitle: String {
-        filter.isEmpty ? "Phim Mới Cập Nhật" : filter.displayTitle
+    func openFilter(kind: CatalogFilter.Kind? = nil) {
+        filterSheetKind = kind
+        showFilterSheet = true
     }
+
+    func applyFilter(_ newFilter: CatalogFilter) async {
+        filter = newFilter
+        if filter.isEmpty {
+            filteredMovies = []
+            filteredPage = 1
+            return
+        }
+        filteredMovies = []
+        filteredPage = 1
+        filteredTotalPages = 1
+        await fetchFiltered(page: 1, replacing: true)
+    }
+
+    func loadMoreFiltered() async {
+        guard !isLoadingMore, filteredPage < filteredTotalPages else { return }
+        isLoadingMore = true
+        defer { isLoadingMore = false }
+        await fetchFiltered(page: filteredPage + 1, replacing: false)
+    }
+
+    private func fetchFiltered(page: Int, replacing: Bool) async {
+        if replacing { isLoadingFiltered = true }
+        defer { if replacing { isLoadingFiltered = false } }
+
+        var collected: [Movie] = []
+        var maxTotal = 1
+
+        await withTaskGroup(of: ([Movie], Int).self) { group in
+            for server in SourceServer.allCases {
+                group.addTask { [server, filter = self.filter] in
+                    do {
+                        let (movies, total) = try await SourceClient.list(
+                            server: server,
+                            operation: filter.operation,
+                            slug: filter.slug.isEmpty ? nil : filter.slug,
+                            page: page
+                        )
+                        return (movies, total)
+                    } catch {
+                        return ([], 1)
+                    }
+                }
+            }
+            for await (movies, total) in group {
+                collected.append(contentsOf: movies)
+                if total > maxTotal { maxTotal = total }
+            }
+        }
+
+        var seen = Set<String>()
+        var deduplicated: [Movie] = []
+        for movie in collected {
+            let key = movie.commentKey.isEmpty ? movie.slug : movie.commentKey
+            if !seen.contains(key) {
+                seen.insert(key)
+                deduplicated.append(movie)
+            }
+        }
+
+        if replacing {
+            filteredMovies = deduplicated
+        } else {
+            let existing = Set(filteredMovies.map(\.slug))
+            filteredMovies.append(contentsOf: deduplicated.filter { !existing.contains($0.slug) })
+        }
+        filteredPage = page
+        filteredTotalPages = maxTotal
+    }
+
+    // MARK: - Data Loading
 
     func loadHome(force: Bool = false) async {
         if !homeRows.isEmpty && !force { return }
@@ -822,7 +851,6 @@ final class HomeViewModel {
         do {
             let response: HomeResponse = try await APIClient.shared.get("/api/home")
             homeRows = response.rows
-            hero = Array(response.rows.first?.items.prefix(4) ?? [])
         } catch {
             loadError = (error as? LocalizedError)?.errorDescription
                 ?? "Không tải được dữ liệu. Kiểm tra kết nối mạng."
@@ -882,7 +910,7 @@ final class HomeViewModel {
         case animeSeason([AniListNormalized], String?)
     }
 
-    // MARK: - Latest grid (infinite scroll)
+    // MARK: - Latest Grid (Infinite Scroll)
 
     func loadLatest() async {
         guard latest.isEmpty else { return }
@@ -890,39 +918,56 @@ final class HomeViewModel {
     }
 
     func loadMoreLatest() async {
-        guard !isLoadingMore, latestPage < totalPages else { return }
-        isLoadingMore = true
-        defer { isLoadingMore = false }
+        guard !isLoadingMoreLatest, latestPage < latestTotalPages else { return }
+        isLoadingMoreLatest = true
+        defer { isLoadingMoreLatest = false }
         await fetchLatest(page: latestPage + 1, replacing: false)
     }
 
-    func applyFilter(_ newFilter: CatalogFilter) async {
-        filter = newFilter
-        latest = []
-        latestPage = 1
-        totalPages = 1
-        await fetchLatest(page: 1, replacing: true)
-    }
-
     private func fetchLatest(page: Int, replacing: Bool) async {
-        do {
-            let (movies, pages) = try await SourceClient.list(
-                server: .kkphim,
-                operation: filter.operation,
-                slug: filter.slug,
-                page: page
-            )
-            if replacing {
-                latest = movies
-            } else {
-                let existing = Set(latest.map(\.slug))
-                latest.append(contentsOf: movies.filter { !existing.contains($0.slug) })
+        var collected: [Movie] = []
+        var maxTotal = 1
+
+        await withTaskGroup(of: ([Movie], Int).self) { group in
+            for server in SourceServer.allCases {
+                group.addTask {
+                    do {
+                        let (movies, total) = try await SourceClient.list(
+                            server: server,
+                            operation: "latest",
+                            slug: nil,
+                            page: page
+                        )
+                        return (movies, total)
+                    } catch {
+                        return ([], 1)
+                    }
+                }
             }
-            latestPage = page
-            totalPages = pages
-        } catch {
-            if replacing { latest = [] }
+            for await (movies, total) in group {
+                collected.append(contentsOf: movies)
+                if total > maxTotal { maxTotal = total }
+            }
         }
+
+        var seen = Set<String>()
+        var deduplicated: [Movie] = []
+        for movie in collected {
+            let key = movie.commentKey.isEmpty ? movie.slug : movie.commentKey
+            if !seen.contains(key) {
+                seen.insert(key)
+                deduplicated.append(movie)
+            }
+        }
+
+        if replacing {
+            latest = deduplicated
+        } else {
+            let existing = Set(latest.map(\.slug))
+            latest.append(contentsOf: deduplicated.filter { !existing.contains($0.slug) })
+        }
+        latestPage = page
+        latestTotalPages = maxTotal
     }
 }
 
