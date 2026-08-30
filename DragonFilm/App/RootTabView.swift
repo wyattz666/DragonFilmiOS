@@ -15,10 +15,6 @@ struct RootTabView: View {
                 .tabItem { Label("Tìm Kiếm", systemImage: "magnifyingglass") }
                 .tag(AppTab.search)
 
-            NavigationStack { ScheduleView() }
-                .tabItem { Label("Lịch Chiếu", systemImage: "calendar") }
-                .tag(AppTab.schedule)
-
             NavigationStack { LibraryView() }
                 .tabItem { Label("Thư Viện", systemImage: "books.vertical.fill") }
                 .tag(AppTab.library)
@@ -33,7 +29,7 @@ struct RootTabView: View {
 }
 
 enum AppTab: String, CaseIterable {
-    case home, search, schedule, library, profile
+    case home, search, library, profile
 }
 
 #Preview {
