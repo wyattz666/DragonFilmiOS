@@ -12,12 +12,12 @@ struct HomeView: View {
                 ScrollView {
                     VStack(spacing: 0) {
                         Color.clear
-                            .frame(height: 0)
+                            .frame(height: 1)
                             .id("home_top_anchor")
 
                         // Spacing for sticky top header and category pills
                         Color.clear
-                            .frame(height: 108)
+                            .frame(height: 107)
 
                         if !viewModel.filter.isEmpty {
                             // Active Filter Results Grid
@@ -65,7 +65,8 @@ struct HomeView: View {
             // Brand & Actions Bar
             HStack(alignment: .center) {
                 Button {
-                    withAnimation(.spring(response: 0.45, dampingFraction: 0.8)) {
+                    UIImpactFeedbackGenerator(style: .light).impactOccurred()
+                    withAnimation(.spring(response: 0.35, dampingFraction: 0.82)) {
                         proxy.scrollTo("home_top_anchor", anchor: .top)
                     }
                 } label: {
@@ -85,6 +86,8 @@ struct HomeView: View {
                                 .foregroundStyle(DFColor.textMuted)
                         }
                     }
+                    .padding(.vertical, 4)
+                    .contentShape(Rectangle())
                 }
                 .buttonStyle(.plain)
 
@@ -122,7 +125,7 @@ struct HomeView: View {
             .padding(.top, 4)
 
             // Category Navigation Filter Chips
-            categoryPills
+            categoryPills(proxy: proxy)
         }
         .padding(.bottom, 8)
         .background(
@@ -139,13 +142,23 @@ struct HomeView: View {
         )
     }
 
-    private var categoryPills: some View {
+    private func categoryPills(proxy: ScrollViewProxy) -> some View {
         ScrollView(.horizontal, showsIndicators: false) {
             HStack(spacing: 8) {
                 // 1. "Đề xuất" (Default home feed)
                 Button {
-                    Task {
-                        await viewModel.applyFilter(CatalogFilter())
+                    UIImpactFeedbackGenerator(style: .light).impactOccurred()
+                    if viewModel.filter.isEmpty {
+                        withAnimation(.spring(response: 0.35, dampingFraction: 0.82)) {
+                            proxy.scrollTo("home_top_anchor", anchor: .top)
+                        }
+                    } else {
+                        Task {
+                            await viewModel.applyFilter(CatalogFilter())
+                            withAnimation(.spring(response: 0.35, dampingFraction: 0.82)) {
+                                proxy.scrollTo("home_top_anchor", anchor: .top)
+                            }
+                        }
                     }
                 } label: {
                     Text("Đề xuất")
