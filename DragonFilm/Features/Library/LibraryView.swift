@@ -126,10 +126,13 @@ struct LibraryView: View {
             } else {
                 LazyVStack(spacing: DFSpacing.md) {
                     ForEach(items) { item in
-                        NavigationLink { MovieDetailView(slug: item.slug) } label: {
-                            HistoryRow(item: item)
+                        HistoryRow(item: item) {
+                            withAnimation(.easeOut(duration: 0.25)) {
+                                state.localStore.removeFromHistory(slug: item.slug)
+                                refreshToken += 1
+                            }
+                            Task { await state.cloudSync.push() }
                         }
-                        .buttonStyle(.plain)
                     }
                 }
                 .padding(.horizontal, DFSpacing.xxl)
@@ -155,6 +158,21 @@ struct LibraryView: View {
                                        subtitle: movie.yearString, badge: movie.episodeCurrent, width: posterWidth)
                         }
                         .buttonStyle(.plain)
+                        .contextMenu {
+                            Button(role: .destructive) {
+                                withAnimation(.easeOut(duration: 0.25)) {
+                                    if tab == .liked {
+                                        state.localStore.removeFromLiked(slug: movie.slug)
+                                    } else if tab == .watchLater {
+                                        state.localStore.removeFromWatchLater(slug: movie.slug)
+                                    }
+                                    refreshToken += 1
+                                }
+                                Task { await state.cloudSync.push() }
+                            } label: {
+                                Label("Xóa khỏi danh sách", systemImage: "trash")
+                            }
+                        }
                     }
                 }
                 .padding(.horizontal, DFSpacing.xxl)
@@ -204,6 +222,17 @@ struct LibraryView: View {
                             .frame(maxWidth: .infinity)
                         }
                         .buttonStyle(.plain)
+                        .contextMenu {
+                            Button(role: .destructive) {
+                                withAnimation(.easeOut(duration: 0.25)) {
+                                    state.localStore.removeFromActors(name: actor.name)
+                                    refreshToken += 1
+                                }
+                                Task { await state.cloudSync.push() }
+                            } label: {
+                                Label("Bỏ yêu thích diễn viên", systemImage: "trash")
+                            }
+                        }
                     }
                 }
                 .padding(.horizontal, DFSpacing.xxl)
@@ -233,7 +262,7 @@ struct LibraryView: View {
     private func clearCurrentTab() {
         state.localStore.clear(tab)
         refreshToken += 1
-        Task { await state.cloudSync.sync() }
+        Task { await state.cloudSync.push() }
     }
 }
 
@@ -262,52 +291,81 @@ enum LibraryTab: String, CaseIterable, Identifiable {
 
 private struct HistoryRow: View {
     let item: HistoryItem
+    var onDelete: (() -> Void)? = nil
 
     var body: some View {
-        HStack(spacing: DFSpacing.lg) {
-            RemoteImage(url: item.posterURL, contentMode: .fill)
-                .frame(width: 64, height: 96)
-                .clipShape(RoundedRectangle(cornerRadius: DFRadius.md))
-                .overlay(
-                    RoundedRectangle(cornerRadius: DFRadius.md)
-                        .stroke(DFColor.glassBorderGradient, lineWidth: 0.7)
-                )
+        HStack(spacing: DFSpacing.md) {
+            NavigationLink { MovieDetailView(slug: item.slug) } label: {
+                HStack(spacing: DFSpacing.lg) {
+                    RemoteImage(url: item.posterURL, contentMode: .fill)
+                        .frame(width: 64, height: 96)
+                        .clipShape(RoundedRectangle(cornerRadius: DFRadius.md))
+                        .overlay(
+                            RoundedRectangle(cornerRadius: DFRadius.md)
+                                .stroke(DFColor.glassBorderGradient, lineWidth: 0.7)
+                        )
 
-            VStack(alignment: .leading, spacing: 4) {
-                Text(item.name)
-                    .font(.system(size: 14, weight: .semibold, design: .rounded))
-                    .foregroundStyle(DFColor.text)
-                    .lineLimit(2)
+                    VStack(alignment: .leading, spacing: 4) {
+                        Text(item.name)
+                            .font(.system(size: 14, weight: .semibold, design: .rounded))
+                            .foregroundStyle(DFColor.text)
+                            .lineLimit(2)
 
-                HStack(spacing: 6) {
-                    Text(item.episodeName)
-                        .font(DFFont.caption().bold())
-                        .foregroundStyle(DFColor.gold)
+                        HStack(spacing: 6) {
+                            Text(item.episodeName)
+                                .font(DFFont.caption().bold())
+                                .foregroundStyle(DFColor.gold)
 
-                    if item.progress > 0 {
-                        Text("•")
+                            if item.progress > 0 {
+                                Text("•")
+                                    .font(DFFont.small())
+                                    .foregroundStyle(DFColor.textMuted)
+                                Text(item.progressPercentText)
+                                    .font(DFFont.small().bold())
+                                    .foregroundStyle(DFColor.goldDim)
+                            }
+                        }
+
+                        Text(relativeWatchedAt)
                             .font(DFFont.small())
                             .foregroundStyle(DFColor.textMuted)
-                        Text(item.progressPercentText)
-                            .font(DFFont.small().bold())
-                            .foregroundStyle(DFColor.goldDim)
                     }
+
+                    Spacer()
+
+                    Image(systemName: "play.circle.fill")
+                        .font(.title2)
+                        .foregroundStyle(DFColor.gold)
+                        .shadow(color: DFColor.gold.opacity(0.4), radius: 6)
                 }
-
-                Text(relativeWatchedAt)
-                    .font(DFFont.small())
-                    .foregroundStyle(DFColor.textMuted)
             }
+            .buttonStyle(.plain)
 
-            Spacer()
-
-            Image(systemName: "play.circle.fill")
-                .font(.title2)
-                .foregroundStyle(DFColor.gold)
-                .shadow(color: DFColor.gold.opacity(0.4), radius: 6)
+            if let onDelete {
+                Button {
+                    onDelete()
+                } label: {
+                    Image(systemName: "trash")
+                        .font(.system(size: 13, weight: .semibold))
+                        .foregroundStyle(DFColor.goldDim)
+                        .frame(width: 32, height: 32)
+                        .background(Color.white.opacity(0.08))
+                        .clipShape(Circle())
+                }
+                .buttonStyle(.plain)
+            }
         }
         .padding(DFSpacing.md)
         .glassCard(cornerRadius: DFRadius.lg)
+        .contextMenu {
+            if let onDelete {
+                Button(role: .destructive) {
+                    onDelete()
+                } label: {
+                    Label("Xóa khỏi lịch sử xem", systemImage: "trash")
+                }
+            }
+        }
     }
 
     private var relativeWatchedAt: String {

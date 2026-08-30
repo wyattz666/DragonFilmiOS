@@ -44,8 +44,19 @@ final class LocalStore {
         historyUpdateCount += 1
     }
 
+    func removeFromHistory(slug: String) {
+        var list = history()
+        list.removeAll { $0.slug == slug }
+        save("history.json", list)
+        var times = resumeTimes()
+        times.removeValue(forKey: slug)
+        save("resumeTimes.json", times)
+        historyUpdateCount += 1
+    }
+
     func clearHistory() {
         save("history.json", [] as [HistoryItem])
+        save("resumeTimes.json", [:] as [String: Double])
         historyUpdateCount += 1
     }
 
@@ -53,6 +64,7 @@ final class LocalStore {
         switch tab {
         case .history:
             save("history.json", [] as [HistoryItem])
+            save("resumeTimes.json", [:] as [String: Double])
             historyUpdateCount += 1
         case .watchLater:
             save("watchLater.json", [] as [Movie])
@@ -85,6 +97,13 @@ final class LocalStore {
         libraryUpdateCount += 1
     }
 
+    func removeFromWatchLater(slug: String) {
+        var list = watchLater()
+        list.removeAll { $0.slug == slug }
+        save("watchLater.json", list)
+        libraryUpdateCount += 1
+    }
+
     func isWatchLater(_ slug: String) -> Bool {
         watchLater().contains { $0.slug == slug }
     }
@@ -104,6 +123,13 @@ final class LocalStore {
             list.insert(movie, at: 0)
             if list.count > 200 { list = Array(list.prefix(200)) }
         }
+        save("liked.json", list)
+        libraryUpdateCount += 1
+    }
+
+    func removeFromLiked(slug: String) {
+        var list = likedMovies()
+        list.removeAll { $0.slug == slug }
         save("liked.json", list)
         libraryUpdateCount += 1
     }
@@ -133,6 +159,13 @@ final class LocalStore {
             list.insert(saved, at: 0)
             if list.count > 200 { list = Array(list.prefix(200)) }
         }
+        save("actors.json", list)
+        libraryUpdateCount += 1
+    }
+
+    func removeFromActors(name: String) {
+        var list = favoriteActors()
+        list.removeAll { $0.name == name }
         save("actors.json", list)
         libraryUpdateCount += 1
     }

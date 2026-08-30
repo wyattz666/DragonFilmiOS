@@ -48,6 +48,29 @@ final class CloudSync {
         }
     }
 
+    /// Pushes the local state directly to the cloud without pulling/merging from remote.
+    /// Used when the user explicitly deletes items or clears a library tab.
+    func push() async {
+        guard let token = auth.token else { return }
+        do {
+            let local = Snapshot(
+                history: store.history(),
+                resumeTimes: store.resumeTimes(),
+                watchLater: store.watchLater(),
+                liked: store.likedMovies(),
+                actors: store.favoriteActors()
+            )
+            let payload: [String: Any] = [
+                "data": try encodeSnapshot(local)
+            ]
+            let _: DataResponse = try await APIClient.shared.post(
+                "/api/user-data", body: payload, token: token
+            )
+        } catch {
+            // Offline or error
+        }
+    }
+
     // MARK: - Merge
 
     private func merge(_ remote: Snapshot) {
