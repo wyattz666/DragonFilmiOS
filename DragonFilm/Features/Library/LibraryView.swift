@@ -2,7 +2,7 @@ import SwiftUI
 
 struct LibraryView: View {
     @Environment(AppState.self) private var state
-    @State private var tab: LibraryTab = .liked
+    @State private var tab: LibraryTab = .history
     @State private var refreshToken = 0
     @State private var showClearConfirmation = false
 
@@ -12,6 +12,8 @@ struct LibraryView: View {
 
             ScrollView {
                 switch tab {
+                case .history:
+                    historyList
                 case .liked:
                     movieGrid(state.localStore.likedMovies(),
                               emptyIcon: "heart.slash",
@@ -22,8 +24,6 @@ struct LibraryView: View {
                               emptyIcon: "bookmark.slash",
                               emptyTitle: "Chưa có phim xem sau",
                               emptyMessage: "Bấm nút 'Xem sau' ở trang chi tiết phim để lưu lại xem khi rảnh.")
-                case .history:
-                    historyList
                 case .actors:
                     actorList
                 }
@@ -267,23 +267,23 @@ struct LibraryView: View {
 }
 
 enum LibraryTab: String, CaseIterable, Identifiable {
-    case liked, watchLater, history, actors
+    case history, liked, watchLater, actors
     var id: String { rawValue }
 
     var title: String {
         switch self {
+        case .history: return "Lịch sử"
         case .liked: return "Phim yêu thích"
         case .watchLater: return "Phim xem sau"
-        case .history: return "Lịch sử xem"
-        case .actors: return "Diễn viên"
+        case .actors: return "Diễn viên yêu thích"
         }
     }
 
     var icon: String {
         switch self {
+        case .history: return "clock.arrow.circlepath"
         case .liked: return "heart.fill"
         case .watchLater: return "bookmark.fill"
-        case .history: return "clock.arrow.circlepath"
         case .actors: return "person.2.fill"
         }
     }
