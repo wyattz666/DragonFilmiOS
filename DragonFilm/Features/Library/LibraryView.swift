@@ -2,7 +2,7 @@ import SwiftUI
 
 struct LibraryView: View {
     @Environment(AppState.self) private var state
-    @State private var tab: LibraryTab = .history
+    @State private var tab: LibraryTab = .liked
     @State private var refreshToken = 0
     @State private var showClearConfirmation = false
 
@@ -12,16 +12,18 @@ struct LibraryView: View {
 
             ScrollView {
                 switch tab {
-                case .history:
-                    historyList
-                case .watchLater:
-                    movieGrid(state.localStore.watchLater(),
-                              emptyTitle: "Chưa có phim xem sau",
-                              emptyMessage: "Lưu phim từ trang chi tiết để xem lại sau.")
                 case .liked:
                     movieGrid(state.localStore.likedMovies(),
+                              emptyIcon: "heart.slash",
                               emptyTitle: "Chưa có phim yêu thích",
-                              emptyMessage: "Bấm biểu tượng Yêu thích ở trang phim để thêm vào đây.")
+                              emptyMessage: "Bấm biểu tượng trái tim ở trang chi tiết phim để lưu vào danh sách yêu thích.")
+                case .watchLater:
+                    movieGrid(state.localStore.watchLater(),
+                              emptyIcon: "bookmark.slash",
+                              emptyTitle: "Chưa có phim xem sau",
+                              emptyMessage: "Bấm nút 'Xem sau' ở trang chi tiết phim để lưu lại xem khi rảnh.")
+                case .history:
+                    historyList
                 case .actors:
                     actorList
                 }
@@ -30,14 +32,17 @@ struct LibraryView: View {
         }
         .background(DFColor.bg)
         .navigationTitle("Thư Viện")
+        .navigationBarTitleDisplayMode(.inline)
         .toolbar {
             ToolbarItem(placement: .topBarTrailing) {
                 if hasContent {
-                    Button("Xóa Tất Cả", role: .destructive) {
+                    Button {
                         showClearConfirmation = true
+                    } label: {
+                        Text("Xóa")
+                            .font(DFFont.caption().bold())
+                            .foregroundStyle(DFColor.goldDim)
                     }
-                    .font(DFFont.caption())
-                    .foregroundStyle(DFColor.goldDim)
                 }
             }
         }
@@ -58,25 +63,47 @@ struct LibraryView: View {
         .task { await state.cloudSync.sync() }
     }
 
+    // MARK: - Tab Bar with Icons & Counts
+
     private var tabBar: some View {
         ScrollView(.horizontal, showsIndicators: false) {
-            HStack(spacing: DFSpacing.md) {
+            HStack(spacing: 8) {
                 ForEach(LibraryTab.allCases) { item in
-                    Button { withAnimation(.easeOut(duration: 0.2)) { tab = item } } label: {
-                        Text(item.title)
-                            .font(DFFont.caption().bold())
-                            .foregroundStyle(tab == item ? Color(hex: 0x07080A) : DFColor.textDim)
-                            .padding(.horizontal, DFSpacing.xl)
-                            .padding(.vertical, 9)
-                            .background(
-                                Capsule()
-                                    .fill(tab == item ? DFColor.gold : Color.white.opacity(0.08))
-                                    .overlay(
-                                        Capsule()
-                                            .stroke(tab == item ? DFColor.gold : Color.white.opacity(0.12), lineWidth: 0.6)
-                                    )
-                            )
-                            .shadow(color: tab == item ? DFColor.gold.opacity(0.35) : .clear, radius: 6)
+                    let isSelected = tab == item
+                    let count = countFor(item)
+
+                    Button {
+                        UIImpactFeedbackGenerator(style: .light).impactOccurred()
+                        withAnimation(.easeOut(duration: 0.2)) { tab = item }
+                    } label: {
+                        HStack(spacing: 5) {
+                            Image(systemName: item.icon)
+                                .font(.system(size: 13, weight: .bold))
+
+                            Text(item.title)
+                                .font(DFFont.caption().bold())
+
+                            if count > 0 {
+                                Text("\(count)")
+                                    .font(.system(size: 11, weight: .bold))
+                                    .padding(.horizontal, 6)
+                                    .padding(.vertical, 2)
+                                    .background(isSelected ? Color(hex: 0x07080A).opacity(0.2) : Color.white.opacity(0.12))
+                                    .clipShape(Capsule())
+                            }
+                        }
+                        .foregroundStyle(isSelected ? Color(hex: 0x07080A) : .white)
+                        .padding(.horizontal, 14)
+                        .padding(.vertical, 8)
+                        .background(
+                            Capsule()
+                                .fill(isSelected ? DFColor.gold : Color.white.opacity(0.08))
+                                .overlay(
+                                    Capsule()
+                                        .stroke(isSelected ? Color.clear : Color.white.opacity(0.14), lineWidth: 0.8)
+                                )
+                        )
+                        .shadow(color: isSelected ? DFColor.gold.opacity(0.35) : .clear, radius: 6)
                     }
                     .buttonStyle(.plain)
                 }
@@ -86,13 +113,15 @@ struct LibraryView: View {
         }
     }
 
+    // MARK: - History List
+
     private var historyList: some View {
         let items = state.localStore.history()
         return Group {
             if items.isEmpty {
                 EmptyStateView(icon: "clock.arrow.circlepath",
                                title: "Chưa có lịch sử xem",
-                               message: "Những phim bạn xem sẽ xuất hiện ở đây.")
+                               message: "Những bộ phim bạn vừa xem sẽ tự động lưu lại ở đây.")
                     .frame(minHeight: 360)
             } else {
                 LazyVStack(spacing: DFSpacing.md) {
@@ -104,15 +133,18 @@ struct LibraryView: View {
                     }
                 }
                 .padding(.horizontal, DFSpacing.xxl)
+                .padding(.top, DFSpacing.sm)
                 .padding(.bottom, DFSpacing.xxxl)
             }
         }
     }
 
-    private func movieGrid(_ movies: [Movie], emptyTitle: String, emptyMessage: String) -> some View {
+    // MARK: - Movie Grid (Liked & Watch Later)
+
+    private func movieGrid(_ movies: [Movie], emptyIcon: String, emptyTitle: String, emptyMessage: String) -> some View {
         Group {
             if movies.isEmpty {
-                EmptyStateView(icon: "bookmark", title: emptyTitle, message: emptyMessage)
+                EmptyStateView(icon: emptyIcon, title: emptyTitle, message: emptyMessage)
                     .frame(minHeight: 360)
             } else {
                 LazyVGrid(columns: Array(repeating: GridItem(.flexible(), spacing: DFSpacing.md), count: 3),
@@ -120,16 +152,19 @@ struct LibraryView: View {
                     ForEach(movies) { movie in
                         NavigationLink { MovieDetailView(slug: movie.slug) } label: {
                             PosterCard(imageURL: movie.bestPoster, title: movie.name,
-                                       subtitle: movie.yearString, badge: nil, width: posterWidth)
+                                       subtitle: movie.yearString, badge: movie.episodeCurrent, width: posterWidth)
                         }
                         .buttonStyle(.plain)
                     }
                 }
                 .padding(.horizontal, DFSpacing.xxl)
+                .padding(.top, DFSpacing.sm)
                 .padding(.bottom, DFSpacing.xxxl)
             }
         }
     }
+
+    // MARK: - Favorite Actors List
 
     private var actorList: some View {
         let actors = state.localStore.favoriteActors()
@@ -137,26 +172,42 @@ struct LibraryView: View {
             if actors.isEmpty {
                 EmptyStateView(icon: "person.2",
                                title: "Chưa có diễn viên yêu thích",
-                               message: "Bấm vào diễn viên ở trang phim để lưu.")
+                               message: "Bấm vào biểu tượng trái tim cạnh diễn viên ở trang chi tiết phim để thêm vào đây.")
                     .frame(minHeight: 360)
             } else {
-                LazyVGrid(columns: Array(repeating: GridItem(.flexible(), spacing: DFSpacing.xl), count: 3),
+                LazyVGrid(columns: Array(repeating: GridItem(.flexible(), spacing: DFSpacing.lg), count: 3),
                           spacing: DFSpacing.xl) {
                     ForEach(actors) { actor in
-                        VStack(spacing: DFSpacing.sm) {
-                            RemoteImage(url: actor.profileURL, contentMode: .fill)
-                                .frame(width: 76, height: 76)
-                                .clipShape(Circle())
-                                .overlay(Circle().stroke(DFColor.glassBorderGradient, lineWidth: 1.2))
-                                .shadow(color: Color.black.opacity(0.4), radius: 6, y: 3)
-                            Text(actor.name)
-                                .font(DFFont.caption())
-                                .foregroundStyle(DFColor.text)
-                                .lineLimit(1)
+                        NavigationLink {
+                            SearchView(initialQuery: actor.name)
+                        } label: {
+                            VStack(spacing: DFSpacing.sm) {
+                                RemoteImage(url: actor.profileURL, contentMode: .fill)
+                                    .frame(width: 80, height: 80)
+                                    .clipShape(Circle())
+                                    .overlay(Circle().stroke(DFColor.gold.opacity(0.6), lineWidth: 1.2))
+                                    .shadow(color: Color.black.opacity(0.5), radius: 6, y: 3)
+
+                                Text(actor.name)
+                                    .font(DFFont.caption().bold())
+                                    .foregroundStyle(DFColor.text)
+                                    .lineLimit(1)
+                                    .multilineTextAlignment(.center)
+
+                                if !actor.character.isEmpty {
+                                    Text(actor.character)
+                                        .font(DFFont.small())
+                                        .foregroundStyle(DFColor.textMuted)
+                                        .lineLimit(1)
+                                }
+                            }
+                            .frame(maxWidth: .infinity)
                         }
+                        .buttonStyle(.plain)
                     }
                 }
                 .padding(.horizontal, DFSpacing.xxl)
+                .padding(.top, DFSpacing.sm)
                 .padding(.bottom, DFSpacing.xxxl)
             }
         }
@@ -166,13 +217,17 @@ struct LibraryView: View {
         (UIScreen.main.bounds.width - DFSpacing.xxl * 2 - DFSpacing.md * 2) / 3
     }
 
-    private var hasContent: Bool {
+    private func countFor(_ tab: LibraryTab) -> Int {
         switch tab {
-        case .history: return !state.localStore.history().isEmpty
-        case .watchLater: return !state.localStore.watchLater().isEmpty
-        case .liked: return !state.localStore.likedMovies().isEmpty
-        case .actors: return !state.localStore.favoriteActors().isEmpty
+        case .liked: return state.localStore.likedMovies().count
+        case .watchLater: return state.localStore.watchLater().count
+        case .history: return state.localStore.history().count
+        case .actors: return state.localStore.favoriteActors().count
         }
+    }
+
+    private var hasContent: Bool {
+        countFor(tab) > 0
     }
 
     private func clearCurrentTab() {
@@ -183,14 +238,24 @@ struct LibraryView: View {
 }
 
 enum LibraryTab: String, CaseIterable, Identifiable {
-    case history, watchLater, liked, actors
+    case liked, watchLater, history, actors
     var id: String { rawValue }
+
     var title: String {
         switch self {
-        case .history: return "Lịch sử xem"
-        case .watchLater: return "Phim xem sau"
         case .liked: return "Phim yêu thích"
+        case .watchLater: return "Phim xem sau"
+        case .history: return "Lịch sử xem"
         case .actors: return "Diễn viên"
+        }
+    }
+
+    var icon: String {
+        switch self {
+        case .liked: return "heart.fill"
+        case .watchLater: return "bookmark.fill"
+        case .history: return "clock.arrow.circlepath"
+        case .actors: return "person.2.fill"
         }
     }
 }

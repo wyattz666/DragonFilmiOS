@@ -2,8 +2,12 @@ import SwiftUI
 
 struct SearchView: View {
     @State private var viewModel = SearchViewModel()
-    @State private var searchText = ""
+    @State private var searchText: String
     @FocusState private var isSearchFocused: Bool
+
+    init(initialQuery: String = "") {
+        _searchText = State(initialValue: initialQuery)
+    }
 
     var body: some View {
         VStack(spacing: 0) {
@@ -83,6 +87,11 @@ struct SearchView: View {
         .navigationTitle("Tìm Kiếm")
         .navigationBarTitleDisplayMode(.inline)
         .onAppear { viewModel.loadRecentSearches() }
+        .task {
+            if !searchText.isEmpty {
+                await viewModel.search(searchText)
+            }
+        }
     }
 }
 
