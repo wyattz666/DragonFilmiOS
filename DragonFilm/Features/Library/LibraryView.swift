@@ -76,7 +76,7 @@ struct LibraryView: View {
                         UIImpactFeedbackGenerator(style: .light).impactOccurred()
                         withAnimation(.easeOut(duration: 0.2)) { tab = item }
                     } label: {
-                        HStack(spacing: 5) {
+                        HStack(spacing: 6) {
                             Image(systemName: item.icon)
                                 .font(.system(size: 13, weight: .bold))
 
@@ -109,8 +109,10 @@ struct LibraryView: View {
                 }
             }
             .padding(.horizontal, DFSpacing.xxl)
-            .padding(.vertical, DFSpacing.md)
+            .padding(.vertical, 6)
         }
+        .frame(height: 52)
+        .fixedSize(horizontal: false, vertical: true)
     }
 
     // MARK: - History List
