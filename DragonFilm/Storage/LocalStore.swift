@@ -220,12 +220,25 @@ struct HistoryItem: Codable, Identifiable {
     let episodeIndex0: Int
     let episodeNumber: Int
     let watchedSeconds: Double
+    let durationSeconds: Double
     let watchedAt: Double
 
     var id: String { "\(slug)-\(episodeSlug)" }
 
+    var progress: Double {
+        if durationSeconds > 0 {
+            return max(0.0, min(1.0, watchedSeconds / durationSeconds))
+        }
+        return 0.0
+    }
+
+    var progressPercentText: String {
+        let p = Int(round(progress * 100))
+        return "\(p)%"
+    }
+
     init(movie: Movie, episode: Episode, server: String, serverIdx: Int = 0, epIndex: Int = 0,
-         watchedSeconds: Double = 0) {
+         watchedSeconds: Double = 0, durationSeconds: Double = 0) {
         self.slug = movie.slug
         self.name = movie.name
         self.posterURL = movie.bestPoster
@@ -239,6 +252,7 @@ struct HistoryItem: Codable, Identifiable {
         self.episodeIndex0 = epIndex
         self.episodeNumber = epIndex + 1
         self.watchedSeconds = watchedSeconds
+        self.durationSeconds = durationSeconds
         self.watchedAt = Date().timeIntervalSince1970
     }
 
@@ -266,6 +280,9 @@ struct HistoryItem: Codable, Identifiable {
         case episodeNumberAlt = "episodeNumber"
         case watchedSeconds = "watched_seconds"
         case watchedSecondsAlt = "watchedSeconds"
+        case durationSeconds = "duration_seconds"
+        case durationSecondsAlt = "durationSeconds"
+        case duration = "duration"
         case watchedAt
         case watchedAtAlt = "watched_at"
     }
@@ -340,6 +357,20 @@ struct HistoryItem: Codable, Identifiable {
             self.watchedSeconds = 0
         }
 
+        if let dur = try? c.decode(Double.self, forKey: .durationSeconds) {
+            self.durationSeconds = dur
+        } else if let durAlt = try? c.decode(Double.self, forKey: .durationSecondsAlt) {
+            self.durationSeconds = durAlt
+        } else if let dur = try? c.decode(Double.self, forKey: .duration) {
+            self.durationSeconds = dur
+        } else if let durInt = try? c.decode(Int.self, forKey: .durationSeconds) {
+            self.durationSeconds = Double(durInt)
+        } else if let durStr = try? c.decode(String.self, forKey: .durationSeconds), let dur = Double(durStr) {
+            self.durationSeconds = dur
+        } else {
+            self.durationSeconds = 0
+        }
+
         var rawWatched: Double = Date().timeIntervalSince1970
         if let w = try? c.decode(Double.self, forKey: .watchedAt) {
             rawWatched = w
@@ -368,6 +399,7 @@ struct HistoryItem: Codable, Identifiable {
         try c.encode(episodeIndex0, forKey: .episodeIndex0)
         try c.encode(episodeNumber, forKey: .episodeNumber)
         try c.encode(watchedSeconds, forKey: .watchedSeconds)
+        try c.encode(durationSeconds, forKey: .durationSeconds)
         try c.encode(watchedAt * 1000, forKey: .watchedAt)
     }
 }

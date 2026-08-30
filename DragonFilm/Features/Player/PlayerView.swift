@@ -608,16 +608,18 @@ struct PlayerView: View {
         scheduleAutoHide()
     }
 
-    private func recordWatchHistory(seconds: Double? = nil) {
+    private func recordWatchHistory(seconds: Double? = nil, duration: Double? = nil) {
         let epIdx = currentIndex
         let watched = seconds ?? (isEmbedMode ? 0 : controller.currentTime)
+        let totalDuration = duration ?? (isEmbedMode ? 0 : controller.duration)
         let item = HistoryItem(
             movie: movie,
             episode: episode,
             server: server.rawValue,
             serverIdx: serverIndex,
             epIndex: epIdx,
-            watchedSeconds: watched
+            watchedSeconds: watched,
+            durationSeconds: totalDuration
         )
         state.localStore.addToHistory(item)
         if watched > 5 {
@@ -632,7 +634,7 @@ struct PlayerView: View {
             return
         }
         if force || controller.currentTime > 0 {
-            recordWatchHistory(seconds: controller.currentTime)
+            recordWatchHistory(seconds: controller.currentTime, duration: controller.duration)
         }
     }
 

@@ -213,9 +213,22 @@ private struct HistoryRow: View {
                     .font(.system(size: 14, weight: .semibold, design: .rounded))
                     .foregroundStyle(DFColor.text)
                     .lineLimit(2)
-                Text(item.episodeName)
-                    .font(DFFont.caption())
-                    .foregroundStyle(DFColor.gold)
+
+                HStack(spacing: 6) {
+                    Text(item.episodeName)
+                        .font(DFFont.caption().bold())
+                        .foregroundStyle(DFColor.gold)
+
+                    if item.progress > 0 {
+                        Text("•")
+                            .font(DFFont.small())
+                            .foregroundStyle(DFColor.textMuted)
+                        Text(item.progressPercentText)
+                            .font(DFFont.small().bold())
+                            .foregroundStyle(DFColor.goldDim)
+                    }
+                }
+
                 Text(relativeWatchedAt)
                     .font(DFFont.small())
                     .foregroundStyle(DFColor.textMuted)

@@ -117,9 +117,13 @@ struct ContinueWatchingCard: View {
                         Rectangle()
                             .fill(Color.white.opacity(0.25))
                             .frame(height: 3.5)
-                        Rectangle()
-                            .fill(DFColor.goldGradient)
-                            .frame(width: width * 0.55, height: 3.5)
+                        
+                        let p = max(0.0, min(1.0, item.progress))
+                        if p > 0 {
+                            Rectangle()
+                                .fill(DFColor.goldGradient)
+                                .frame(width: max(4, width * CGFloat(p)), height: 3.5)
+                        }
                     }
                     .clipShape(RoundedRectangle(cornerRadius: 2))
                 }
