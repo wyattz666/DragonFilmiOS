@@ -78,9 +78,12 @@ struct HomeView: View {
                             .shadow(color: DFColor.gold.opacity(0.35), radius: 6)
 
                         VStack(alignment: .leading, spacing: 1) {
-                            Text("DragonFilm")
-                                .font(.system(size: 19, weight: .black, design: .rounded))
-                                .foregroundStyle(.white)
+                            HStack(spacing: 5) {
+                                Text("DragonFilm")
+                                    .font(.system(size: 19, weight: .black, design: .rounded))
+                                    .foregroundStyle(.white)
+                                VIPBadge(title: "VIP", style: .compact)
+                            }
                             Text("Phim Chuẩn Điện Ảnh")
                                 .font(.system(size: 11, weight: .medium))
                                 .foregroundStyle(DFColor.textMuted)

@@ -14,10 +14,12 @@ struct ProfileView: View {
             VStack(spacing: DFSpacing.xxl) {
                 if let user = state.currentUser {
                     accountCard(user)
+                    vipPrivilegeCard
                     statsRow
                     actionsList
                 } else {
                     guestCard
+                    vipGuestPerksCard
                 }
 
                 appVersionFooter
@@ -97,29 +99,101 @@ struct ProfileView: View {
             }
             .disabled(isUploading)
 
-            VStack(spacing: 4) {
+            VStack(spacing: 6) {
                 Text(user.username)
                     .font(DFFont.title2())
                     .foregroundStyle(DFColor.text)
+
                 if !user.email.isEmpty {
                     Text(user.email)
                         .font(DFFont.caption())
                         .foregroundStyle(DFColor.textMuted)
                 }
-                if user.isAdmin {
-                    Text("VIP ADMIN")
-                        .font(DFFont.small())
-                        .foregroundStyle(Color(hex: 0x07080A))
-                        .padding(.horizontal, 8)
-                        .padding(.vertical, 3)
-                        .background(DFColor.goldGradient)
-                        .clipShape(Capsule())
-                }
+
+                VIPBadge(
+                    title: user.isAdmin ? "VIP ADMIN" : "VIP MEMBER",
+                    style: .standard
+                )
+                .padding(.top, 4)
             }
         }
         .frame(maxWidth: .infinity)
         .padding(.vertical, DFSpacing.xxl)
         .glassCard(cornerRadius: DFRadius.xl)
+    }
+
+    private var vipPrivilegeCard: some View {
+        VStack(alignment: .leading, spacing: DFSpacing.md) {
+            HStack {
+                HStack(spacing: 6) {
+                    Image(systemName: "sparkles")
+                        .foregroundStyle(DFColor.gold)
+                    Text("ĐẶC QUYỀN VIP MEMBER")
+                        .font(DFFont.caption().bold())
+                        .foregroundStyle(DFColor.gold)
+                }
+                Spacer()
+                Text("VĨNH VIỄN")
+                    .font(.system(size: 10, weight: .bold))
+                    .foregroundStyle(Color(hex: 0x07080A))
+                    .padding(.horizontal, 7)
+                    .padding(.vertical, 2.5)
+                    .background(DFColor.goldGradient)
+                    .clipShape(Capsule())
+            }
+
+            Divider().overlay(Color.white.opacity(0.08))
+
+            VStack(alignment: .leading, spacing: 10) {
+                vipFeatureItem(icon: "bolt.fill", title: "Máy chủ phát phim VIP siêu tốc", desc: "Không giới hạn băng thông, xem tức thì")
+                vipFeatureItem(icon: "tv.fill", title: "Chất lượng hình ảnh 4K & Full HD", desc: "Âm thanh vòm và phụ đề chuẩn điện ảnh")
+                vipFeatureItem(icon: "icloud.fill", title: "Đồng bộ đám mây DragonSync", desc: "Tự động lưu lịch sử và danh sách yêu thích")
+            }
+        }
+        .padding(DFSpacing.lg)
+        .glassCard(cornerRadius: DFRadius.lg)
+        .overlay(
+            RoundedRectangle(cornerRadius: DFRadius.lg)
+                .stroke(DFColor.gold.opacity(0.35), lineWidth: 0.8)
+        )
+    }
+
+    private var vipGuestPerksCard: some View {
+        VStack(alignment: .leading, spacing: DFSpacing.md) {
+            HStack(spacing: 6) {
+                VIPBadge(title: "VIP MEMBER", style: .compact)
+                Text("Kích hoạt đặc quyền VIP miễn phí")
+                    .font(DFFont.caption().bold())
+                    .foregroundStyle(DFColor.gold)
+            }
+
+            VStack(alignment: .leading, spacing: 8) {
+                vipFeatureItem(icon: "bolt.fill", title: "Trải nghiệm phim mượt mà", desc: "Tối ưu hóa kết nối đa server")
+                vipFeatureItem(icon: "icloud.fill", title: "Lưu lịch sử & xem sau", desc: "Đồng bộ tự động khi đăng nhập")
+            }
+        }
+        .padding(DFSpacing.lg)
+        .glassCard(cornerRadius: DFRadius.lg)
+    }
+
+    private func vipFeatureItem(icon: String, title: String, desc: String) -> some View {
+        HStack(alignment: .top, spacing: 10) {
+            Image(systemName: icon)
+                .font(.system(size: 13, weight: .bold))
+                .foregroundStyle(DFColor.gold)
+                .frame(width: 22, height: 22)
+                .background(DFColor.gold.opacity(0.12))
+                .clipShape(Circle())
+
+            VStack(alignment: .leading, spacing: 2) {
+                Text(title)
+                    .font(.system(size: 13, weight: .semibold))
+                    .foregroundStyle(DFColor.text)
+                Text(desc)
+                    .font(DFFont.small())
+                    .foregroundStyle(DFColor.textMuted)
+            }
+        }
     }
 
     private var guestCard: some View {
@@ -131,7 +205,7 @@ struct ProfileView: View {
             Text("Chưa đăng nhập")
                 .font(DFFont.headline())
                 .foregroundStyle(DFColor.text)
-            Text("Đăng nhập để đồng bộ lịch sử xem và thư viện phim giữa các thiết bị.")
+            Text("Đăng nhập để nhận huy hiệu VIP MEMBER và đồng bộ đám mây giữa các thiết bị.")
                 .font(DFFont.body())
                 .foregroundStyle(DFColor.textDim)
                 .multilineTextAlignment(.center)

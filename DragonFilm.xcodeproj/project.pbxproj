@@ -45,6 +45,7 @@
 		EC97DDACA578E1E3429FCA18 /* Rankings.swift in Sources */ = {isa = PBXBuildFile; fileRef = EF9BE0DD0C8DDF8AB5B4CE0E /* Rankings.swift */; };
 		ECE2AE148A528EED59BA07FC /* RankingLink.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0236208B8361AF2E637F81F2 /* RankingLink.swift */; };
 		F487CD95CAC9F590C177E486 /* EmptyState.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4D1CA9AE035F224F268ADF20 /* EmptyState.swift */; };
+		F7E55AF61A8AA667747792E2 /* VIPBadge.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5B5BD19EA246EDCFCF7D58AA /* VIPBadge.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -64,6 +65,7 @@
 		4EC8425AD9C6AAC23765CD7C /* APIClient.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = APIClient.swift; sourceTree = "<group>"; };
 		53B5E2E5B9B82E43F0F11712 /* Badge.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Badge.swift; sourceTree = "<group>"; };
 		5A810F98C5795C713E740E67 /* CatalogView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CatalogView.swift; sourceTree = "<group>"; };
+		5B5BD19EA246EDCFCF7D58AA /* VIPBadge.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VIPBadge.swift; sourceTree = "<group>"; };
 		6743C5350B67907374FC28C0 /* Movie.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Movie.swift; sourceTree = "<group>"; };
 		6AD6633BF4FBA916F771155C /* Theme.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Theme.swift; sourceTree = "<group>"; };
 		6F9CB4543DB0B70FF9908BFE /* CloudSync.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CloudSync.swift; sourceTree = "<group>"; };
@@ -121,6 +123,7 @@
 				D39EF5344D740AA54288706B /* SectionHeader.swift */,
 				EBAEA14117691E10C956AFA2 /* Shimmer.swift */,
 				229E6598092531C4003B4481 /* Toast.swift */,
+				5B5BD19EA246EDCFCF7D58AA /* VIPBadge.swift */,
 			);
 			path = Components;
 			sourceTree = "<group>";
@@ -389,6 +392,7 @@
 				4C1DB2E2942E1886B31A8620 /* StreamResolver.swift in Sources */,
 				D19997E01771139538AA5B9A /* Theme.swift in Sources */,
 				D8E35CC57F5995AA1054FEB9 /* Toast.swift in Sources */,
+				F7E55AF61A8AA667747792E2 /* VIPBadge.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

@@ -169,10 +169,12 @@ private struct CommentRow: View {
             VStack(alignment: .leading, spacing: DFSpacing.xs) {
                 HStack(spacing: DFSpacing.sm) {
                     Text(comment.user.username)
-                        .font(DFFont.caption())
+                        .font(DFFont.caption().bold())
                         .foregroundStyle(DFColor.text)
                     if comment.user.isAdmin {
-                        Badge(text: "Admin")
+                        VIPBadge(title: "VIP ADMIN", style: .compact)
+                    } else {
+                        VIPBadge(title: "VIP", style: .compact)
                     }
                     Spacer()
                     if canDelete {
