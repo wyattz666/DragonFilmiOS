@@ -346,28 +346,6 @@ struct ProfileView: View {
     }
 }
 
-/// Avatars come back as base64 data URLs, which `RemoteImage` can't fetch.
-struct AvatarImage: View {
-    let dataURL: String
-
-    var body: some View {
-        if let image = decoded {
-            Image(uiImage: image)
-                .resizable()
-                .aspectRatio(contentMode: .fill)
-        } else {
-            Circle().fill(DFColor.bg3)
-        }
-    }
-
-    private var decoded: UIImage? {
-        guard let comma = dataURL.firstIndex(of: ","),
-              let data = Data(base64Encoded: String(dataURL[dataURL.index(after: comma)...]))
-        else { return nil }
-        return UIImage(data: data)
-    }
-}
-
 #Preview {
     NavigationStack {
         ProfileView()

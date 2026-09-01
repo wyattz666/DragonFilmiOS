@@ -43,6 +43,9 @@ struct DragonFilmApp: App {
                 .preferredColorScheme(.dark)
                 .tint(DFColor.gold)
                 .onOpenURL { handleDeepLink($0) }
+                .task {
+                    await appState.loadProfile()
+                }
                 .navigationDestination(isPresented: Binding(
                     get: { deepLinkedSlug != nil },
                     set: { if !$0 { deepLinkedSlug = nil } }

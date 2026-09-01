@@ -198,8 +198,9 @@ private struct CommentRow: View {
 
     @ViewBuilder
     private var avatar: some View {
-        if let url = comment.user.avatarURL, url.hasPrefix("data:") {
-            AvatarImage(dataURL: url)
+        let url = comment.user.avatarURL ?? ""
+        if !url.isEmpty {
+            AvatarImage(dataURL: url, placeholderText: String(comment.user.username.prefix(1)).uppercased())
         } else {
             Circle()
                 .fill(DFColor.bg3)
