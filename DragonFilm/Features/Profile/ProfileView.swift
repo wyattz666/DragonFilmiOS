@@ -5,6 +5,7 @@ struct ProfileView: View {
     @Environment(AppState.self) private var state
     @State private var showAuthSheet = false
     @State private var showPasswordSheet = false
+    @State private var showFrameSheet = false
     @State private var avatarItem: PhotosPickerItem?
     @State private var isUploading = false
     @State private var syncMessage: String?
@@ -31,6 +32,7 @@ struct ProfileView: View {
         .navigationTitle("Thành viên")
         .sheet(isPresented: $showAuthSheet) { AuthSheet() }
         .sheet(isPresented: $showPasswordSheet) { ChangePasswordSheet() }
+        .sheet(isPresented: $showFrameSheet) { VIPFramePickerSheet() }
         .onChange(of: avatarItem) { _, item in
             guard let item else { return }
             Task { await uploadAvatar(item) }
@@ -67,25 +69,17 @@ struct ProfileView: View {
 
     private func accountCard(_ user: User) -> some View {
         VStack(spacing: DFSpacing.lg) {
-            PhotosPicker(selection: $avatarItem, matching: .images) {
-                Group {
-                    if user.avatarURL.isEmpty {
-                        Circle()
-                            .fill(DFColor.bg3)
-                            .overlay(
-                                Text(String(user.username.prefix(1)).uppercased())
-                                    .font(DFFont.largeTitle())
-                                    .foregroundStyle(DFColor.gold)
-                            )
-                    } else {
-                        AvatarImage(dataURL: user.avatarURL)
-                    }
-                }
-                .frame(width: 92, height: 92)
-                .clipShape(Circle())
-                .overlay(Circle().stroke(DFColor.glassBorderGradient, lineWidth: 1.5))
-                .shadow(color: Color.black.opacity(0.5), radius: 8, y: 4)
-                .overlay(alignment: .bottomTrailing) {
+            let selectedFrame = state.localStore.selectedVIPFrame()
+
+            ZStack(alignment: .bottomTrailing) {
+                FramedAvatarView(
+                    avatarURL: user.avatarURL,
+                    username: user.username,
+                    frameId: selectedFrame,
+                    size: 88
+                )
+
+                PhotosPicker(selection: $avatarItem, matching: .images) {
                     Circle()
                         .fill(DFColor.goldGradient)
                         .frame(width: 28, height: 28)
@@ -96,8 +90,9 @@ struct ProfileView: View {
                         )
                         .shadow(color: DFColor.gold.opacity(0.5), radius: 4)
                 }
+                .disabled(isUploading)
+                .offset(x: -4, y: -4)
             }
-            .disabled(isUploading)
 
             VStack(spacing: 6) {
                 Text(user.username)
@@ -116,6 +111,25 @@ struct ProfileView: View {
                 )
                 .padding(.top, 4)
             }
+
+            Button {
+                showFrameSheet = true
+            } label: {
+                HStack(spacing: 6) {
+                    Image(systemName: "sparkles")
+                        .font(.system(size: 12, weight: .bold))
+                    Text("Đổi Khung Avatar VIP")
+                        .font(DFFont.caption().bold())
+                }
+                .foregroundStyle(Color(hex: 0x07080A))
+                .padding(.horizontal, 16)
+                .padding(.vertical, 8)
+                .background(DFColor.goldGradient)
+                .clipShape(Capsule())
+                .shadow(color: DFColor.gold.opacity(0.35), radius: 6, y: 2)
+            }
+            .buttonStyle(.plain)
+            .padding(.top, 2)
         }
         .frame(maxWidth: .infinity)
         .padding(.vertical, DFSpacing.xxl)
@@ -147,6 +161,7 @@ struct ProfileView: View {
             VStack(alignment: .leading, spacing: 10) {
                 vipFeatureItem(icon: "bolt.fill", title: "Máy chủ phát phim VIP siêu tốc", desc: "Không giới hạn băng thông, xem tức thì")
                 vipFeatureItem(icon: "tv.fill", title: "Chất lượng hình ảnh 4K & Full HD", desc: "Âm thanh vòm và phụ đề chuẩn điện ảnh")
+                vipFeatureItem(icon: "sparkles.rectangle.stack.fill", title: "9 Khung Avatar VIP Độc Quyền", desc: "Tự do lựa chọn và trang bị khung avatar phong cách")
                 vipFeatureItem(icon: "icloud.fill", title: "Đồng bộ đám mây DragonSync", desc: "Tự động lưu lịch sử và danh sách yêu thích")
             }
         }
@@ -169,8 +184,28 @@ struct ProfileView: View {
 
             VStack(alignment: .leading, spacing: 8) {
                 vipFeatureItem(icon: "bolt.fill", title: "Trải nghiệm phim mượt mà", desc: "Tối ưu hóa kết nối đa server")
+                vipFeatureItem(icon: "sparkles.rectangle.stack.fill", title: "Mở khóa 9 khung avatar VIP", desc: "Độc quyền cho thành viên đăng nhập")
                 vipFeatureItem(icon: "icloud.fill", title: "Lưu lịch sử & xem sau", desc: "Đồng bộ tự động khi đăng nhập")
             }
+
+            Button {
+                showFrameSheet = true
+            } label: {
+                HStack {
+                    Text("Xem Bộ Sưu Tập Khung VIP")
+                        .font(DFFont.caption().bold())
+                        .foregroundStyle(DFColor.gold)
+                    Spacer()
+                    Image(systemName: "chevron.right")
+                        .font(.caption)
+                        .foregroundStyle(DFColor.goldDim)
+                }
+                .padding(DFSpacing.md)
+                .background(DFColor.gold.opacity(0.12))
+                .clipShape(RoundedRectangle(cornerRadius: DFRadius.md))
+            }
+            .buttonStyle(.plain)
+            .padding(.top, 4)
         }
         .padding(DFSpacing.lg)
         .glassCard(cornerRadius: DFRadius.lg)

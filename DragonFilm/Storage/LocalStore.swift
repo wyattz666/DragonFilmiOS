@@ -206,6 +206,22 @@ final class LocalStore {
         save("searchHistory.json", list)
     }
 
+    // MARK: - VIP Avatar Frame
+
+    func selectedVIPFrame() -> String? {
+        _ = libraryUpdateCount
+        return UserDefaults.standard.string(forKey: "df_selected_vip_frame")
+    }
+
+    func setVIPFrame(_ frameId: String?) {
+        if let frameId {
+            UserDefaults.standard.set(frameId, forKey: "df_selected_vip_frame")
+        } else {
+            UserDefaults.standard.removeObject(forKey: "df_selected_vip_frame")
+        }
+        libraryUpdateCount += 1
+    }
+
     // MARK: - Server preference
 
     var lastUsedServer: SourceServer {
