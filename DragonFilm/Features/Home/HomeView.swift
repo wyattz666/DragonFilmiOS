@@ -882,15 +882,13 @@ final class HomeViewModel {
                 let r: NetflixResponse? = try? await APIClient.shared.get("/api/netflix-top10-vn")
                 return .netflix(Array((r?.items ?? []).prefix(20)))
             }
-            group.addTask {
-                let r: TMDBWeeklyResponse? = try? await APIClient.shared.get(
-                    "/api/tmdb-weekly", query: ["country": "KR"])
-                return .tmdbKR(r?.ok == true ? r!.items : [])
+            group.addTask { [self] in
+                let items = await fetchCountryRankings(countryCode: "KR", countrySlug: "han-quoc", countryLabel: "Hàn Quốc")
+                return .tmdbKR(items)
             }
-            group.addTask {
-                let r: TMDBWeeklyResponse? = try? await APIClient.shared.get(
-                    "/api/tmdb-weekly", query: ["country": "CN"])
-                return .tmdbCN(r?.ok == true ? r!.items : [])
+            group.addTask { [self] in
+                let items = await fetchCountryRankings(countryCode: "CN", countrySlug: "trung-quoc", countryLabel: "Trung Quốc")
+                return .tmdbCN(items)
             }
             group.addTask {
                 .animeWeekly((try? await AniListClient.weeklyTrending(limit: 12)) ?? [])
@@ -915,6 +913,95 @@ final class HomeViewModel {
                     }
                 }
             }
+        }
+    }
+
+    private func fetchCountryRankings(countryCode: String, countrySlug: String, countryLabel: String) async -> [TMDBWeeklyItem] {
+        var items: [TMDBWeeklyItem] = []
+        if let r: TMDBWeeklyResponse = try? await APIClient.shared.get(
+            "/api/tmdb-weekly", query: ["country": countryCode]) {
+            if r.ok {
+                items = r.items
+            }
+        }
+
+        if items.count >= 15 {
+            return Array(items.prefix(20))
+        }
+
+        var merged = items
+        var seen = Set(items.map { $0.title.lowercased().trimmingCharacters(in: .whitespacesAndNewlines) })
+
+        // Check if homeRows has country data
+        let homeRowKey = countryCode == "KR" ? "korea" : "china"
+        if let row = homeRows.first(where: { $0.key == homeRowKey }) {
+            for movie in row.items {
+                let clean = movie.name.lowercased().trimmingCharacters(in: .whitespacesAndNewlines)
+                if !seen.contains(clean) {
+                    seen.insert(clean)
+                    let rank = merged.count + 1
+                    let score = (movie.tmdb?.voteAverage?.doubleVal ?? 0) > 0
+                        ? movie.tmdb!.voteAverage!.doubleVal
+                        : max(6.5, 8.5 - Double(min(rank, 15)) * 0.1)
+                    merged.append(TMDBWeeklyItem(
+                        rank: rank,
+                        tmdbID: nil,
+                        title: movie.name,
+                        originalTitle: movie.originName.isEmpty ? nil : movie.originName,
+                        overview: nil,
+                        posterURL: movie.bestPoster.isEmpty ? (movie.posterURL.isEmpty ? movie.thumbURL : movie.posterURL) : movie.bestPoster,
+                        backdropURL: movie.bestBanner.isEmpty ? movie.thumbURL : movie.bestBanner,
+                        voteAverage: score,
+                        popularity: nil
+                    ))
+                }
+            }
+        }
+
+        // If still < 15, fetch from upstream source servers (.kkphim, .nguonc, .vsmov)
+        if merged.count < 15 {
+            for server in [SourceServer.kkphim, SourceServer.nguonc, SourceServer.vsmov] {
+                if let (movies, _) = try? await SourceClient.list(server: server, operation: "country", slug: countrySlug, page: 1) {
+                    for movie in movies {
+                        let clean = movie.name.lowercased().trimmingCharacters(in: .whitespacesAndNewlines)
+                        if !seen.contains(clean) {
+                            seen.insert(clean)
+                            let rank = merged.count + 1
+                            let score = (movie.tmdb?.voteAverage?.doubleVal ?? 0) > 0
+                                ? movie.tmdb!.voteAverage!.doubleVal
+                                : max(6.5, 8.2 - Double(min(rank, 15)) * 0.1)
+                            merged.append(TMDBWeeklyItem(
+                                rank: rank,
+                                tmdbID: nil,
+                                title: movie.name,
+                                originalTitle: movie.originName.isEmpty ? nil : movie.originName,
+                                overview: nil,
+                                posterURL: movie.bestPoster.isEmpty ? (movie.posterURL.isEmpty ? movie.thumbURL : movie.posterURL) : movie.bestPoster,
+                                backdropURL: movie.bestBanner.isEmpty ? movie.thumbURL : movie.bestBanner,
+                                voteAverage: score,
+                                popularity: nil
+                            ))
+                        }
+                        if merged.count >= 20 { break }
+                    }
+                }
+                if merged.count >= 20 { break }
+            }
+        }
+
+        // Re-index ranks 1...N up to 20
+        return merged.prefix(20).enumerated().map { index, item in
+            TMDBWeeklyItem(
+                rank: index + 1,
+                tmdbID: item.tmdbID,
+                title: item.title,
+                originalTitle: item.originalTitle,
+                overview: item.overview,
+                posterURL: item.posterURL,
+                backdropURL: item.backdropURL,
+                voteAverage: item.voteAverage,
+                popularity: item.popularity
+            )
         }
     }
 
