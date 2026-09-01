@@ -121,6 +121,9 @@ struct VIPFramePickerSheet: View {
             UIImpactFeedbackGenerator(style: .light).impactOccurred()
             selectedId = nil
             state.localStore.setVIPFrame(nil)
+            Task {
+                await state.cloudSync.push()
+            }
         } label: {
             VStack(spacing: DFSpacing.md) {
                 Circle()
@@ -170,6 +173,9 @@ struct VIPFramePickerSheet: View {
             if isVIP {
                 selectedId = frame.id
                 state.localStore.setVIPFrame(frame.id)
+                Task {
+                    await state.cloudSync.push()
+                }
             } else {
                 showAuthSheet = true
             }

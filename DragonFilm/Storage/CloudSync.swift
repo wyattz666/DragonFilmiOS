@@ -115,6 +115,13 @@ final class CloudSync {
         mergeLibrary(file: "watchLater.json", remote: remote.watchLater) { $0.slug }
         mergeLibrary(file: "liked.json", remote: remote.liked) { $0.slug }
         mergeLibrary(file: "actors.json", remote: remote.actors) { $0.name }
+
+        // VIP Frame sync
+        if let remoteFrame = remote.vipFrame, !remoteFrame.isEmpty {
+            if store.selectedVIPFrame() != remoteFrame {
+                store.setVIPFrame(remoteFrame)
+            }
+        }
     }
 
     private func mergeLibrary<T: Codable & Identifiable>(file: String, remote: [T], key: (T) -> String) {
@@ -138,6 +145,7 @@ final class CloudSync {
         var watchLater: [Movie] = []
         var liked: [Movie] = []
         var actors: [SavedActor] = []
+        var vipFrame: String? = nil
     }
 
     private func encodeSnapshot(_ s: Snapshot) throws -> [String: Any] {
@@ -147,7 +155,7 @@ final class CloudSync {
         let likedJSON = try JSONSerialization.jsonObject(with: try enc.encode(s.liked))
         let actorsJSON = try JSONSerialization.jsonObject(with: try enc.encode(s.actors))
 
-        return [
+        var payload: [String: Any] = [
             "app": "dragonfilm",
             "type": "cloud-data",
             "version": 4,
@@ -160,6 +168,12 @@ final class CloudSync {
             ],
             "actorLibrary": actorsJSON
         ]
+
+        if let frame = s.vipFrame ?? store.selectedVIPFrame(), !frame.isEmpty {
+            payload["vipFrame"] = frame
+        }
+
+        return payload
     }
 
     private func decodeSnapshot(_ dict: [String: Any]?) -> Snapshot {
@@ -193,12 +207,18 @@ final class CloudSync {
             }
         }
 
+        let vipFrame = (dict["vipFrame"] as? String)
+            ?? (dict["vip_frame"] as? String)
+            ?? (dict["avatar_frame"] as? String)
+            ?? (dict["selectedVIPFrame"] as? String)
+
         return Snapshot(
             history: history,
             resumeTimes: resumeTimes,
             watchLater: watchLater,
             liked: liked,
-            actors: actors
+            actors: actors,
+            vipFrame: vipFrame
         )
     }
 
